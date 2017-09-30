@@ -51,4 +51,5 @@ http://ardupilot.org/dev/docs/ros-sitl.html
 According to https://github.com/mavlink/mavros/issues/446 changes made in Mavros to control the movement of drone 
 
 According to http://ardupilot.org/dev/docs/ros-gazebo.html ROS Gazebo using SITL is still working in progress.
+
 According to http://ardupilot.org/dev/docs/using-gazebo-simulator-with-sitl.html Gazebo with SITL is possible
