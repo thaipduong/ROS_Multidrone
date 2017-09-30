@@ -54,4 +54,4 @@ According to http://ardupilot.org/dev/docs/ros-gazebo.html ROS Gazebo using SITL
 
 According to http://ardupilot.org/dev/docs/using-gazebo-simulator-with-sitl.html Gazebo with SITL is possible
 
-# These are the files I have changed from the original code
+# The uploaded files are the ones I have changed from the original code
