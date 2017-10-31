@@ -51,6 +51,8 @@ int main(int argc, char **argv)
   /*check sensors NOT IMPLEMENTED*/
   
   /*check battery NOT IMPLEMENTED*/
+
+  //battery state msg in mavros
   
   /*operating rate in Hz?*/
   ros::Rate rate(20.0);
@@ -102,13 +104,30 @@ int main(int argc, char **argv)
   sleep(10);
 
   
-  
+  /*Loop*/
   while(ros::ok()){
+
     
-    target_.latitude=nextT_.latitude;
-    target_.longitude=nextT_.longitude;
-    target_.altitude=nextT_.altitude;
-    target_publisher_.publish(target_);
+    
+    /*condition check for msg*/
+    if(/*not in guided mode || (drone moving to target or gps!=target)*/){
+      /*do nothing*/
+      
+    }else if(/*check for landing signal*/){
+      /*perform service call to land*/
+    
+    }else if(/*guided mode && waypoint msg*/){
+    
+      /*get target location*/
+      target_.latitude=nextT_.latitude;
+      target_.longitude=nextT_.longitude;
+      target_.altitude=nextT_.altitude;
+
+      /*publish waypoint and fly there*/
+      target_publisher_.publish(target_);
+    }
+    
+    
     ros::spinOnce();
     rate.sleep();
   
