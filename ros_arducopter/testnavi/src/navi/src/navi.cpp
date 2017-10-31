@@ -10,15 +10,19 @@
 #include <sensor_msgs/NavSatFix.h>
 
 
-
+/*get state of drone*/
 mavros_msgs::State current_state;
 void state_callback(const mavros_msgs::State::ConstPtr& msg){
     current_state = *msg;
 }
+
+/*get next target msg from decision code*/
 sensor_msgs::NavSatFix nextT_;
 void nextT_callback(const sensor_msgs::NavSatFix::ConstPtr& msg){
     nextT_ = *msg;
 }
+
+/*get current lcoation*/
 sensor_msgs::NavSatFix gpsLoc_;
 void gps_callback(const sensor_msgs::NavSatFix::ConstPtr& msg){
     gpsLoc_ = *msg;
@@ -83,7 +87,8 @@ int main(int argc, char **argv)
     ROS_INFO("GUIDED Mode switch FAILED");
     exit(EXIT_FAILURE);
   }
-
+  
+  /*arming*/
   if( arming_client.call(arm_cmd) && arm_cmd.response.success){
     ROS_INFO("Vehicle armed");
   }else{
@@ -116,6 +121,7 @@ int main(int argc, char **argv)
     }else if(/*check for landing signal*/){
       /*perform service call to land*/
     
+      exit(0);
     }else if(/*guided mode && waypoint msg*/){
     
       /*get target location*/
