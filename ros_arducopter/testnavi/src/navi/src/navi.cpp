@@ -8,6 +8,7 @@
 #include <mavros_msgs/CommandTOL.h>
 #include <mavros_msgs/GlobalPositionTarget.h>
 #include <sensor_msgs/NavSatFix.h>
+#include <std_msgs/Bool.h>
 
 
 /*get state of drone*/
@@ -28,9 +29,19 @@ void gps_callback(const sensor_msgs::NavSatFix::ConstPtr& msg){
     gpsLoc_ = *msg;
 }
 
+/*get landing signal*/
+std_msgs::Bool landSig_;
+void signal(const std_msgs::Bool::ConstPtr& msg){
+    landSig_ = *msg;
+}
 
 int main(int argc, char **argv)
 {
+  /*start script*/
+  std::string command = "rosrun drone drone_node_simulation_main.py";
+  system(command&);
+  //havn't tested this yet ^^ the & makes it unblocking apparently
+
   /*create ros node*/
   ros::init(argc, argv, "arducopter_navi");
   
@@ -39,18 +50,20 @@ int main(int argc, char **argv)
   ros::Subscriber state_sub_ = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_callback);
   ros::Subscriber nextT_sub_ = nh.subscribe<sensor_msgs::NavSatFix>("droneObj", 10, nextT_callback);//geo msg
   ros::Subscriber gps_sub_ = nh.subscribe<sensor_msgs::NavSatFix>("mavros/global_position/raw/fix", 10, gps_callback);//geo msg
+  ros::Subscriber signal_sub_ =nh.subscribe<std_msgs::Bool>("land_sig", 10, signal);
 
   ros::Publisher target_publisher_ = nh.advertise<mavros_msgs::GlobalPositionTarget>("mavros/setpoint_raw/global", 10);
 
   ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
   ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
   ros::ServiceClient takeoff_client = nh.serviceClient<mavros_msgs::CommandTOL>("mavros/cmd/takeoff");
-
+  ros::ServiceClient landing_client = nh.serviceClient<mavros_msgs::CommandTOL>("mavros/cmd/land") ;
   /*declare msg*/
   mavros_msgs::GlobalPositionTarget target_;
   mavros_msgs::SetMode guided_mode;
   mavros_msgs::CommandBool arm_cmd;
   mavros_msgs::CommandTOL takeoff_cmd;
+  mavros_msgs::CommandTOL land_cmd;
   
   /*check sensors NOT IMPLEMENTED*/
   
@@ -115,14 +128,32 @@ int main(int argc, char **argv)
     
     
     /*condition check for msg*/
-    if(/*not in guided mode || (drone moving to target or gps!=target)*/){
+    if(
+    /*not in guided mode || (drone moving to target or gps!=target)*/
+    !current_state.guided || (gpsLoc_.latitude!=target_.latitude 
+    || gpsLoc_.longitude!=target_.longitude
+    || gpsLoc_.altitude!=target_.altitude)){
       /*do nothing*/
       
-    }else if(/*check for landing signal*/){
+    }else if(landSig_.data){
+    
+      /*can use landing state in topic extended state?*/
       /*perform service call to land*/
+      if( landing_client.call(land_cmd) && land_cmd.response.success){
+        ROS_INFO("drone is landing");
+        sleep(100);
+      }else{
+        ROS_INFO("landing FAILED");
+        
+        /*not sure what to do here*/
+        //exit(EXIT_FAILURE);
+      }
     
       exit(0);
-    }else if(/*guided mode && waypoint msg*/){
+    }else if(
+    /*guided mode && waypoint msg*/
+    current_state.guided
+    //&& not sure about this implementation){
     
       /*get target location*/
       target_.latitude=nextT_.latitude;
