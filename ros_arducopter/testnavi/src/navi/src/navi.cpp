@@ -38,8 +38,8 @@ void signal(const std_msgs::Bool::ConstPtr& msg){
 int main(int argc, char **argv)
 {
   /*start script*/
-  std::string command = "rosrun drone drone_node_simulation_main.py";
-  system(command&);
+  //const char command []= "rosrun drone drone_node_simulation_external-sensing.py";
+  //system(command);
   //havn't tested this yet ^^ the & makes it unblocking apparently
 
   /*create ros node*/
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
   arm_cmd.request.value = true;
 
   /*take off request*/
-  takeoff_cmd.request.altitude= 5;
+  takeoff_cmd.request.altitude= 50;
 
   /*mode switch*/
   if( set_mode_client.call(guided_mode) && guided_mode.response.mode_sent){
@@ -119,8 +119,8 @@ int main(int argc, char **argv)
     exit(EXIT_FAILURE);
   }
   /*wait for take off*/
-  sleep(10);
-
+  sleep(30);
+  bool target_set=false;
   
   /*Loop*/
   while(ros::ok()){
@@ -130,11 +130,18 @@ int main(int argc, char **argv)
     /*condition check for msg*/
     if(
     /*not in guided mode || (drone moving to target or gps!=target)*/
-    !current_state.guided || (gpsLoc_.latitude!=target_.latitude 
-    || gpsLoc_.longitude!=target_.longitude
-    || gpsLoc_.altitude!=target_.altitude)){
+    !current_state.guided || target_set){
       /*do nothing*/
-      
+      ROS_INFO("Drone Moving to Target");
+    }else if((gpsLoc_.latitude>=target_.latitude-1 && 
+    gpsLoc_.latitude<=target_.latitude+1) ||
+    (gpsLoc_.longitude>=target_.longitude-1 &&
+    gpsLoc_.longitude<=target_.longitude+1) ||
+    (gpsLoc_.altitude>=target_.altitude-1 &&
+    gpsLoc_.altitude<=target_.altitude+1)){
+      target_set=false;
+    
+    
     }else if(landSig_.data){
     
       /*can use landing state in topic extended state?*/
@@ -152,16 +159,18 @@ int main(int argc, char **argv)
       exit(0);
     }else if(
     /*guided mode && waypoint msg*/
-    current_state.guided
-    //&& not sure about this implementation){
-    
+    current_state.guided && !target_set
+    //&& not sure about this implementation
+    ){
+      ROS_INFO("Target Acquired");
       /*get target location*/
       target_.latitude=nextT_.latitude;
       target_.longitude=nextT_.longitude;
       target_.altitude=nextT_.altitude;
-
+      
       /*publish waypoint and fly there*/
       target_publisher_.publish(target_);
+      target_set=true;
     }
     
     
