@@ -68,7 +68,7 @@ int main(int argc, char **argv)
   /*check sensors NOT IMPLEMENTED*/
   
   /*check battery NOT IMPLEMENTED*/
-
+  
   //battery state msg in mavros
   
   /*operating rate in Hz?*/
@@ -83,7 +83,6 @@ int main(int argc, char **argv)
   target_.latitude=gpsLoc_.latitude;
   target_.longitude=gpsLoc_.longitude;
   target_.altitude=gpsLoc_.altitude;
-
   /*mode switch request*/
   guided_mode.request.custom_mode = "GUIDED";
 
@@ -91,7 +90,7 @@ int main(int argc, char **argv)
   arm_cmd.request.value = true;
 
   /*take off request*/
-  takeoff_cmd.request.altitude= 50;
+  takeoff_cmd.request.altitude= 30;
 
   /*mode switch*/
   if( set_mode_client.call(guided_mode) && guided_mode.response.mode_sent){
@@ -110,7 +109,8 @@ int main(int argc, char **argv)
   }
   /*wait for arming to finish*/
   sleep(5);
-
+  ros::spinOnce();
+  double home_alt=gpsLoc_.altitude;
   /*take off*/
   if( takeoff_client.call(takeoff_cmd) && takeoff_cmd.response.success){
     ROS_INFO("drone took off");
@@ -121,29 +121,30 @@ int main(int argc, char **argv)
   /*wait for take off*/
   sleep(30);
   bool target_set=false;
-  
+  int debugger=0;
   /*Loop*/
   while(ros::ok()){
 
     
+    if((gpsLoc_.latitude>=target_.latitude-(1/3.3) && 
+    gpsLoc_.latitude<=target_.latitude+(1/3.3)) &&
+    (gpsLoc_.longitude>=target_.longitude-(1/3.3) &&
+    gpsLoc_.longitude<=target_.longitude+(1/3.3)) &&
+    (gpsLoc_.altitude>=target_.altitude-(1/3.3)+600 &&
+    gpsLoc_.altitude<=target_.altitude+(1/3.3)+600)){
+      target_set=false;
     
+    
+    }
     /*condition check for msg*/
     if(
     /*not in guided mode || (drone moving to target or gps!=target)*/
     !current_state.guided || target_set){
       /*do nothing*/
-      ROS_INFO("Drone Moving to Target lat %f, long  %f,alt %f",
-      target_.latitude,target_.longitude,target_.altitude);
+      ROS_INFO("Drone Moving to Target lat %f, long  %f,alt %f, home %f, gpsl: %f, %f, %f",
+      target_.latitude,target_.longitude,target_.altitude+600, home_alt,
+      gpsLoc_.latitude,gpsLoc_.longitude, gpsLoc_.altitude);
       
-    }else if((gpsLoc_.latitude>=target_.latitude-1 && 
-    gpsLoc_.latitude<=target_.latitude+1) ||
-    (gpsLoc_.longitude>=target_.longitude-1 &&
-    gpsLoc_.longitude<=target_.longitude+1) ||
-    (gpsLoc_.altitude>=target_.altitude-1 &&
-    gpsLoc_.altitude<=target_.altitude+1)){
-      target_set=false;
-    
-    
     }else if(landSig_.data){
     
       /*can use landing state in topic extended state?*/
@@ -168,11 +169,15 @@ int main(int argc, char **argv)
       /*get target location*/
       target_.latitude=nextT_.latitude;
       target_.longitude=nextT_.longitude;
-      target_.altitude=nextT_.altitude;
+      target_.altitude=nextT_.altitude-600;
       
       /*publish waypoint and fly there*/
       target_publisher_.publish(target_);
+      ROS_INFO("%f, %f ,%f", target_.latitude, target_.longitude,target_.altitude);
       target_set=true;
+      debugger++;
+      //if(debugger>1)
+        //exit(0);
     }
     
     

@@ -18,7 +18,7 @@ from sensor_msgs.msg import NavSatFix
 class Drone:
     # Constructor. Requires start GPS location, exploration area size (in feet), grid resolution, and id
     def __init__(self, xRangeDiameter, yRangeDiameter, zRangeHeight, resolutions, id):
-        self.proximityReq = 1                       # Max distance to target to consider objective location reached
+        self.proximityReq = 5                       # Max distance to target to consider objective location reached
         self.isExploring = True
         self.id = id
         self.t = 0
@@ -35,8 +35,8 @@ class Drone:
         xMin = self.x - (xRangeDiameter/2)*0.0003048/10000*90
         yMax = self.y + (yRangeDiameter/2)*0.0003048/10000*90
         yMin = self.y - (yRangeDiameter/2)*0.0003048/10000*90
-        zMax = self.z + (zRangeHeight/2)*0.0003048/10000*90
-        zMin = self.z - (zRangeHeight/2)*0.0003048/10000*90
+        zMax = self.z+50 + (zRangeHeight/2)*0.0003048/10000*90
+        zMin = self.z+50 - (zRangeHeight/2)*0.0003048/10000*90
         bounds = {'xMax':xMax,'xMin':xMin,'yMax':yMax,'yMin':yMin,'zMin':zMin,'zMax':zMax}
         self.bounds = bounds
 
@@ -118,7 +118,7 @@ class Drone:
                     outstr = "Drone %d reached target: still exploring, moving to least explored, new objective at (%f|%f|%f), no event found yet" %(self.id, self.xObjective, self.yObjective, self.zObjective)
                     rospy.loginfo(outstr)
                     self.dataCollection.UpdateObjective(self.xObjective, self.yObjective, self.zObjective)
-                time.sleep(5)
+                time.sleep(2)
         else:
             if self.DistanceToObjective() < self.proximityReq:
                 (leastExploredX, leastExploredY, leastExploredZ) = self.maps.GetCurrentLeastExplored(self.t)
@@ -129,7 +129,9 @@ class Drone:
                 outstr = "Drone %d reached target: now exploring, moving to least explored, new objective at (%f|%f|%f), no event found yet" %(self.id, self.xObjective, self.yObjective, self.zObjective)
                 rospy.loginfo(outstr)
                 self.dataCollection.UpdateObjective(self.xObjective, self.yObjective, self.zObjective)
-                time.sleep(5)
+                time.sleep(2)
+
+        self.dataCollection.WaypointPublisher.publishWaypoint()
 
 class DroneGPSSubscriber:
     def __init__(self):
@@ -234,7 +236,6 @@ class DroneDataAggregator:
         self.yObjective = y
         self.zObjective = z
         self.WaypointPublisher.setWaypoint({'latitude':self.xObjective,'longitude':self.yObjective,'altitude':self.zObjective})
-        self.WaypointPublisher.publishWaypoint()
 
     def GetGPS(self):
         return {'x':self.x,'y':self.y,'z':self.z}
@@ -313,7 +314,6 @@ class FakeDataModule:
             rospy.loginfo(outstr)
             self.PrintFakeEventLocations()
         self.sensePub.publishGasData(val)
-        time.sleep(3)
 
     # Prints out fake locations of events
     def PrintFakeEventLocations(self):
@@ -579,7 +579,7 @@ def main():
     for t in range(10000):
         gasSensorModule.PublishGasSensorValue()
         drone.UpdateStatus()
-        time.sleep(0.5)
+        time.sleep(0.05)
 
 if __name__ == "__main__":
     main()
