@@ -12,3 +12,8 @@ install mavros from : https://dev.px4.io/en/ros/mavros_installation.html
 
 follow : http://ardupilot.org/dev/docs/ros-sitl.html  
 to start mvros + SITL (note need to install mavros)
+
+
+# UPDATE
+ Current version main cannot get the location published by the python code due to 
+ synchronization problem
