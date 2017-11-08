@@ -132,7 +132,9 @@ int main(int argc, char **argv)
     /*not in guided mode || (drone moving to target or gps!=target)*/
     !current_state.guided || target_set){
       /*do nothing*/
-      ROS_INFO("Drone Moving to Target");
+      ROS_INFO("Drone Moving to Target lat %f, long  %f,alt %f",
+      target_.latitude,target_.longitude,target_.altitude);
+      
     }else if((gpsLoc_.latitude>=target_.latitude-1 && 
     gpsLoc_.latitude<=target_.latitude+1) ||
     (gpsLoc_.longitude>=target_.longitude-1 &&
