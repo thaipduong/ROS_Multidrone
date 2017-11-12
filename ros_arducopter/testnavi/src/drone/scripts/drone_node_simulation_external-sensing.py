@@ -31,12 +31,12 @@ class Drone:
         self.z = startGPS['z']
 
         # Calculate explorable area grid bounds in terms of GPS locations based on input exploration area size
-        xMax = self.x + (xRangeDiameter/2)*0.0003048/10000*90
-        xMin = self.x - (xRangeDiameter/2)*0.0003048/10000*90
-        yMax = self.y + (yRangeDiameter/2)*0.0003048/10000*90
-        yMin = self.y - (yRangeDiameter/2)*0.0003048/10000*90
-        zMax = self.z+50 + (zRangeHeight/2)*0.0003048/10000*90
-        zMin = self.z+50 - (zRangeHeight/2)*0.0003048/10000*90
+        xMax = self.x + (xRangeDiameter/2)/111111.11
+        xMin = self.x - (xRangeDiameter/2)/111111.11
+        yMax = self.y + (yRangeDiameter/2)/111111.11
+        yMin = self.y - (yRangeDiameter/2)/111111.11
+        zMax = self.z + (zRangeHeight/2)+50
+        zMin = self.z - (zRangeHeight/2)+50
         bounds = {'xMax':xMax,'xMin':xMin,'yMax':yMax,'yMin':yMin,'zMin':zMin,'zMax':zMax}
         self.bounds = bounds
 
@@ -76,11 +76,11 @@ class Drone:
             outstr =  "Not exploring: Drone %d moved to (%f|%f|%f), objective at (%f|%f|%f)" %(self.id, self.x, self.y,  self.z, self.xObjective, self.yObjective, self.zObjective)
         rospy.loginfo(outstr)
 
-    # Calculates distance to objective (in feet based on GPS coordinates)
+    # Calculates distance to objective (in meters based on GPS coordinates)
     def DistanceToObjective(self):
-        xDist = (self.x - self.xObjective)/90*10000/0.0003048
-        yDist = (self.y - self.yObjective)/90*10000/0.0003048
-        zDist = (self.z - self.zObjective)/90*10000/0.0003048
+        xDist = (self.x - self.xObjective)*111111.11
+        yDist = (self.y - self.yObjective)*111111.11
+        zDist = (self.z - self.zObjective)
         return ((xDist ** 2) + (yDist ** 2) + (zDist ** 2)) ** (1./2)
 
     # Updates drone status:
@@ -98,8 +98,12 @@ class Drone:
         currMeasurement = self.dataCollection.GetNewMeasurement()
         self.UpdateLoc(currMeasurement)
         self.maps.ProcessNewMeasurement(currMeasurement)
-        if self.isExploring == True:
-            if self.DistanceToObjective() < self.proximityReq:
+        dist = self.DistanceToObjective()
+        withinProx = (dist < self.proximityReq)
+        if withinProx:
+            outstr =  "Drone %d IS within proximity %dm to target: distance to objective is (%f)" %(self.id, self.proximityReq, dist)
+            rospy.loginfo(outstr)
+            if self.isExploring == True:
                 currValMap = self.maps.GetCurrentValueMapDist(self.t);
                 if numpy.any(currValMap > 0):
                     (zLocs,xLocs,yLocs) = numpy.nonzero(numpy.amax(currValMap) == currValMap)
@@ -119,8 +123,7 @@ class Drone:
                     rospy.loginfo(outstr)
                     self.dataCollection.UpdateObjective(self.xObjective, self.yObjective, self.zObjective)
                 time.sleep(2)
-        else:
-            if self.DistanceToObjective() < self.proximityReq:
+            else:
                 (leastExploredX, leastExploredY, leastExploredZ) = self.maps.GetCurrentLeastExplored(self.t)
                 self.xObjective = leastExploredX*self.xResolutionSize+self.bounds['xMin']
                 self.yObjective = leastExploredY*self.yResolutionSize+self.bounds['yMin']
@@ -130,7 +133,9 @@ class Drone:
                 rospy.loginfo(outstr)
                 self.dataCollection.UpdateObjective(self.xObjective, self.yObjective, self.zObjective)
                 time.sleep(2)
-
+        else:
+            outstr =  "Drone %d NOT within proximity %dm to target: distance to objective is (%f)" %(self.id, self.proximityReq, dist)
+            rospy.loginfo(outstr)
         self.dataCollection.WaypointPublisher.publishWaypoint()
 
 class DroneGPSSubscriber:
@@ -141,7 +146,7 @@ class DroneGPSSubscriber:
         self.sub = None
     def setSubscribe(self):
         if self.sub == None:         #topic below
-            self.sub = rospy.Subscriber("mavros/global_position/raw/fix", NavSatFix, self.GPSReceive)
+            self.sub = rospy.Subscriber("mavros/global_position/global", NavSatFix, self.GPSReceive)
     def GPSReceive(self,msg):
         self.longitude = msg.longitude
         self.latitude = msg.latitude
@@ -553,22 +558,22 @@ class DroneMeasurement:
 
 # Main function for each drone to run
 def main():
-    # Desired grid dimensions in feet
-    xDiam = 90
-    yDiam = 90
-    zDiam = 45
+    # Desired grid dimensions in meters
+    xDiam = 100
+    yDiam = 100
+    zDiam = 50
 
     # Desired grid resolution, number of drones, and communication radius (drone-to-drone range)
-    resolutions = {'x':30,'y':30,'z':15}
+    resolutions = {'x':50,'y':50,'z':50}
     numDrones = 1
     #commRadius = 5
 
-    # Start location in X/Y GPS coordinates, Z in feet)
+    # Start location in X/Y GPS coordinates, Z in meters)
     #xStart = -35.36326
     #yStart = 149.16523
     #zStart = 603.428
 
-    #~10000km per 90 degrees -> ~0.00013716 degrees per 50feet
+    #~10000km per 90 degrees -> 111111.11m per degree
 
     #Need to handle manually setting each drone's ID
     drone = Drone(xDiam, yDiam, zDiam, resolutions, 1)
@@ -576,7 +581,7 @@ def main():
     drone.maps.agingExponent = 0
     print "Start!"
 
-    for t in range(10000):
+    while (True):
         gasSensorModule.PublishGasSensorValue()
         drone.UpdateStatus()
         time.sleep(0.05)

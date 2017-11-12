@@ -49,7 +49,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
   ros::Subscriber state_sub_ = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_callback);
   ros::Subscriber nextT_sub_ = nh.subscribe<sensor_msgs::NavSatFix>("droneObj", 10, nextT_callback);//geo msg
-  ros::Subscriber gps_sub_ = nh.subscribe<sensor_msgs::NavSatFix>("mavros/global_position/raw/fix", 10, gps_callback);//geo msg
+  ros::Subscriber gps_sub_ = nh.subscribe<sensor_msgs::NavSatFix>("mavros/global_position/global", 10, gps_callback);//geo msg
   ros::Subscriber signal_sub_ =nh.subscribe<std_msgs::Bool>("land_sig", 10, signal);
 
   ros::Publisher target_publisher_ = nh.advertise<mavros_msgs::GlobalPositionTarget>("mavros/setpoint_raw/global", 10);
@@ -130,8 +130,8 @@ int main(int argc, char **argv)
     gpsLoc_.latitude<=target_.latitude+(1/3.3)) &&
     (gpsLoc_.longitude>=target_.longitude-(1/3.3) &&
     gpsLoc_.longitude<=target_.longitude+(1/3.3)) &&
-    (gpsLoc_.altitude>=target_.altitude-(1/3.3)+600 &&
-    gpsLoc_.altitude<=target_.altitude+(1/3.3)+600)){
+    (gpsLoc_.altitude>=target_.altitude-(1/3.3)+home_alt &&
+    gpsLoc_.altitude<=target_.altitude+(1/3.3)+home_alt)){
       target_set=false;
     
     
@@ -142,7 +142,7 @@ int main(int argc, char **argv)
     !current_state.guided || target_set){
       /*do nothing*/
       ROS_INFO("Drone Moving to Target lat %f, long  %f,alt %f, home %f, gpsl: %f, %f, %f",
-      target_.latitude,target_.longitude,target_.altitude+600, home_alt,
+      target_.latitude,target_.longitude,target_.altitude+home_alt, home_alt,
       gpsLoc_.latitude,gpsLoc_.longitude, gpsLoc_.altitude);
       
     }else if(landSig_.data){
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
       /*get target location*/
       target_.latitude=nextT_.latitude;
       target_.longitude=nextT_.longitude;
-      target_.altitude=nextT_.altitude-600;
+      target_.altitude=nextT_.altitude-home_alt;
       
       /*publish waypoint and fly there*/
       target_publisher_.publish(target_);
