@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <mavros_msgs/SetMode.h> 
@@ -35,11 +36,16 @@ void signal(const std_msgs::Bool::ConstPtr& msg){
     landSig_ = *msg;
 }
 
+/*get distance*/
+double range_calc(float lat,float lon,float alt,float t_lat,float t_lon,float t_alt){
+    return pow(pow((lat-t_lat)*111111.11,2)+pow((lon-t_lon)*111111.11,2)+pow(alt-t_alt,2),0.5);
+}
+
 int main(int argc, char **argv)
 {
   /*start script*/
-  //const char command []= "rosrun drone drone_node_simulation_external-sensing.py";
-  //system(command);
+  const char command []= "rosrun drone drone_node_simulation_external-sensing.py &";
+  system(command);
   //havn't tested this yet ^^ the & makes it unblocking apparently
 
   /*create ros node*/
@@ -126,26 +132,16 @@ int main(int argc, char **argv)
   while(ros::ok()){
 
     
-    if((gpsLoc_.latitude>=target_.latitude-(1/3.3) && 
-    gpsLoc_.latitude<=target_.latitude+(1/3.3)) &&
-    (gpsLoc_.longitude>=target_.longitude-(1/3.3) &&
-    gpsLoc_.longitude<=target_.longitude+(1/3.3)) &&
-    (gpsLoc_.altitude>=target_.altitude-(1/3.3)+home_alt &&
-    gpsLoc_.altitude<=target_.altitude+(1/3.3)+home_alt)){
+    if(
+    range_calc(gpsLoc_.latitude,gpsLoc_.longitude,gpsLoc_.altitude,target_.latitude,target_.longitude,target_.altitude+home_alt)
+    <5
+    ){
       target_set=false;
     
     
     }
-    /*condition check for msg*/
-    if(
-    /*not in guided mode || (drone moving to target or gps!=target)*/
-    !current_state.guided || target_set){
-      /*do nothing*/
-      ROS_INFO("Drone Moving to Target lat %f, long  %f,alt %f, home %f, gpsl: %f, %f, %f",
-      target_.latitude,target_.longitude,target_.altitude+home_alt, home_alt,
-      gpsLoc_.latitude,gpsLoc_.longitude, gpsLoc_.altitude);
-      
-    }else if(landSig_.data){
+
+    if(landSig_.data){
     
       /*can use landing state in topic extended state?*/
       /*perform service call to land*/
@@ -160,6 +156,16 @@ int main(int argc, char **argv)
       }
     
       exit(0);
+    }
+    /*condition check for msg*/
+    if(
+    /*not in guided mode || (drone moving to target or gps!=target)*/
+    !current_state.guided || target_set){
+      /*do nothing*/
+      ROS_INFO("Drone Moving to Target lat %f, long  %f,alt %f, home %f, gpsl: %f, %f, %f",
+      target_.latitude,target_.longitude,target_.altitude+home_alt, home_alt,
+      gpsLoc_.latitude,gpsLoc_.longitude, gpsLoc_.altitude);
+      
     }else if(
     /*guided mode && waypoint msg*/
     current_state.guided && !target_set
