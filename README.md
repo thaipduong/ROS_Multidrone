@@ -39,11 +39,11 @@ Topics
 2. droneObj - custom topic that tells drone the next objective in LLA format
 3. mavros/global_position/global - GPS information
 4. mavros/setpoint_position/global - tells drone where to go 
-  - *PX4 does not have LLA setpoint function. this topic will take in LLA format and 
+     - *PX4 does not have LLA setpoint function. this topic will take in LLA format and 
     translate it into x,y,z format and send to FCU. However I encountered a problem
     with the time stamp safty feature, I managed to get it working after removing
-    such safty feature in the source code then rebuild mavros.
-  - In "\~/catkin_ws/src/mavros/mavros/src/plugins/setpoint_position.cpp" at line 225
+    such safty feature in the source code then rebuild mavros.*
+     - *In "\~/catkin_ws/src/mavros/mavros/src/plugins/setpoint_position.cpp" at line 225
     remove the if-else statement and just let it call "send_position_target(req->header.stamp, sp);"
     rebuild mavros by running "catkin build" in "\~/catkin_ws"*
 
