@@ -1,7 +1,7 @@
 # ROS_Sim-Ubuntu 16.04 Xenial
 _________________________________________________________________
 
-PX4
+# PX4
 _________________________________________________________________
 1. run ubuntu_sim_ros_gazebo.sh from https://dev.px4.io/en/setup/dev_env_linux_ubuntu.html
      - it will install all the tools (gazebo, mavros, px4 sitl)
@@ -13,10 +13,10 @@ _________________________________________________________________
 3. launch simulation (https://dev.px4.io/en/simulation/ros_interface.html)
      - need both mavros and gazebo launched
 4. execute the code by running "source devel/setup.bash" then "rosrun navi navi"
-     - *modification of mavros source code needed
+     - *modification of mavros source code needed*
 
 
-Ardupilot [Stopped developing due to lack of support on multi drones]
+# Ardupilot [Stopped developing due to lack of support on multi drones]
 _________________________________________________________________
 Temp Environment setup (no gazebo but can do testing via SITL)
 
