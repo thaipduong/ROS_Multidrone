@@ -31,6 +31,25 @@ install mavros from : https://dev.px4.io/en/ros/mavros_installation.html
 follow : http://ardupilot.org/dev/docs/ros-sitl.html  
 to start mvros + SITL (note need to install mavros)
 
+______________________________________________________________________________
+# ROS MSG Parameters [Based on PX4 ver]
 
+Topics
+mavros/state - tells current flight mode of the drone [https://dev.px4.io/en/concept/flight_modes.html]
+droneObj - custom topic that tells drone the next objective in LLA format
+mavros/global_position/global - GPS information
+mavros/setpoint_position/global - tells drone where to go 
+  *PX4 does not have LLA setpoint function. this topic will take in LLA format and 
+  translate it into x,y,z format and send to FCU. However I encountered a problem
+  with the time stamp safty feature, I managed to get it working after removing
+  such safty feature in the source code then rebuilt mavros.
+  in "~/catkin_ws/src/mavros/mavros/src/plugins/setpoint_position.cpp" at line 225
+  remove the if-else statement and just let it call "send_position_target(req->header.stamp, sp);"
+  rebuild mavros by running "catkin build" in "~/catkin_ws"*
+
+Services
+mavros/cmd/arming - arm the drone
+mavros/set_mode - set the current flight mode
+______________________________________________________________________________
 # UPDATE
  only single drone version is ready
