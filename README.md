@@ -42,8 +42,8 @@ Topics
   - *PX4 does not have LLA setpoint function. this topic will take in LLA format and 
     translate it into x,y,z format and send to FCU. However I encountered a problem
     with the time stamp safty feature, I managed to get it working after removing
-    such safty feature in the source code then rebuilt mavros.
-    in "\~/catkin_ws/src/mavros/mavros/src/plugins/setpoint_position.cpp" at line 225
+    such safty feature in the source code then rebuild mavros.
+  - In "\~/catkin_ws/src/mavros/mavros/src/plugins/setpoint_position.cpp" at line 225
     remove the if-else statement and just let it call "send_position_target(req->header.stamp, sp);"
     rebuild mavros by running "catkin build" in "\~/catkin_ws"*
 
