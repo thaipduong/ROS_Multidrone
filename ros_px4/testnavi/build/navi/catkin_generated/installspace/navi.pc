@@ -1,0 +1,8 @@
+prefix=/home/mvp/Desktop/testnavi/install
+
+Name: navi
+Description: Description of navi
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/mvp/Desktop/testnavi/install/lib 
+Requires: 
