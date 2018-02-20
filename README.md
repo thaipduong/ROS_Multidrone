@@ -38,7 +38,7 @@ Topics
 1. mavros/state - tells current flight mode of the drone [https://dev.px4.io/en/concept/flight_modes.html]
 2. droneObj - custom topic that tells drone the next objective in LLA format
 3. mavros/global_position/global - GPS information
-4. mavros/setpoint_position/global - tells drone where to go 
+4. mavros/setpoint_position/global - tells drone where to go in LLA
      - *PX4 does not have LLA setpoint function. this topic will take in LLA format and 
     translate it into x,y,z format and send to FCU. However I encountered a problem
     with the time stamp safty feature, I managed to get it working after removing
