@@ -1,0 +1,8 @@
+prefix=/home/mvp/Desktop/testnavi/devel
+
+Name: drone
+Description: Description of drone
+Version: 0.0.0
+Cflags: -I/home/mvp/Desktop/testnavi/devel/include -I/home/mvp/Desktop/testnavi/src/drone/include
+Libs: -L/home/mvp/Desktop/testnavi/devel/lib -ldrone
+Requires: roscpp rospy std_msgs

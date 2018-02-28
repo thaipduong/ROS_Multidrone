@@ -1,0 +1,2 @@
+drone:navi_1:navi_2
+-DCATKIN_DEVEL_PREFIX=/home/mvp/Desktop/testnavi/devel -DCMAKE_INSTALL_PREFIX=/home/mvp/Desktop/testnavi/install -G Unix Makefiles
