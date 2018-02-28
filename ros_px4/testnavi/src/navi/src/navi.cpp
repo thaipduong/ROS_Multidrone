@@ -97,11 +97,11 @@ int main(int argc, char **argv)
   /*mode switch request-MODE NAME DEPENDS ON FLIGHT STACK*/
   //px4 uses offboard mode
   guided_mode.request.custom_mode = "OFFBOARD";
-    
+   /* 
     pose.pose.position.x = 0;
     pose.pose.position.y = 0;
     pose.pose.position.z = 10;
-
+*/
   /*offboard mode require stream setpoints to be started, 100 is arbituary*/
   for(int i = 100; ros::ok() && i > 0; --i){
         target_publisher_.publish(target_);
