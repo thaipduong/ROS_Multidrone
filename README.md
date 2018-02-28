@@ -52,4 +52,4 @@ Services
 2. mavros/set_mode - set the current flight mode
 ______________________________________________________________________________
 # UPDATE
- only single drone version is ready
+ multi drone control code working, need work on target determine code
