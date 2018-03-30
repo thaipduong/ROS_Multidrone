@@ -181,9 +181,9 @@ int main(int argc, char **argv)
     //!current_state.guided || 
     target_set){
       /*do nothing*/
-      ROS_INFO("Drone Moving to Target lat %f, long  %f,alt %f, home %f, gpsl: %f, %f, %f",
-      target_.latitude,target_.longitude,target_.altitude, home_alt,
-      gpsLoc_.latitude,gpsLoc_.longitude, gpsLoc_.altitude);
+      //ROS_INFO("Drone Moving to Target lat %f, long  %f,alt %f, home %f, gpsl: %f, %f, %f",
+      //target_.latitude,target_.longitude,target_.altitude, home_alt,
+      //gpsLoc_.latitude,gpsLoc_.longitude, gpsLoc_.altitude);
       //target_publisher_.publish(target_);
       
     }else if(

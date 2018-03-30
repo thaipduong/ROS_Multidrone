@@ -54,7 +54,7 @@ add_message_files(
   NavSatFix.msg
   DroneComm.msg
   GasSensorData.msg
-  GridTx.msg
+  GridData.msg
 )
 
 ## Generate services in the 'srv' folder

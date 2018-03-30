@@ -5,7 +5,7 @@ PKG = 'drone'
 import roslib; roslib.load_manifest(PKG)
 import rospy
 import sys
-import math
+import math 
 import numpy
 import random
 import time
@@ -13,7 +13,9 @@ import json
 from drone.msg import NavSatFix
 from drone.msg import GasSensorData
 from drone.msg import DroneComm
-from drone.msg import GridTx
+from drone.msg import GridData
+from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import MultiArrayDimension
 from sensor_msgs.msg import NavSatFix
 
 # Drone Class. Maintains ID, exploration flag, GPS location, time, objective GPS location, exploration grid bounds, 
@@ -91,34 +93,29 @@ class Drone:
         self.DataCollect.UpdateObjective(self.xObjective, self.yObjective, self.zObjective)
         obj = DroneMeasurement(self.xObjective, self.yObjective, self.zObjective, 0, 0)
         [x,y,z] = self.Maps.GetCoordinateIndices(obj)
-        rospy.loginfo("Drone %d: Setting start objective (%f|%f|%f) = (%d|%d|%d)" %(self.id, self.yObjective, self.xObjective, self.zObjective,x,y,z))
-        self.CommModule = DroneCommModule(id)
-        self.DataCollect.SetCommModule(self.CommModule)
-        self.CommModule.SetDataCollect(self.DataCollect)
+        print "Drone %d: Setting start objective (%f|%f|%f) = (%d|%d|%d)" %(self.id, self.yObjective, self.xObjective, self.zObjective,x,y,z)
+        self.CommModule = DroneCommModule(id,resolutions)
+        self.CommModule.SetMaps(self.Maps)
 
     # Update drone GPS location based on input measurement
     def UpdateLoc(self, measurement):
-        oldM = DroneMeasurement(self.x, self.y, self.z, 0, 0)
-        [x0,y0,z0] = self.Maps.GetCoordinateIndices( oldM )
-        #print "Drone %d: PREMOVE: GPS:(%f|%f|%f)=(%d, %d, %d)"%(self.id, self.x, self.y,  self.z, x, y, z)
+        (xOld,yOld,zOld) = (self.x,self.y,self.z)
         self.x = measurement.x
         self.y = measurement.y
         self.z = measurement.z
         self.t = measurement.t
         newM = DroneMeasurement(self.x, self.y, self.z, 0, 0)
         [x,y,z] = self.Maps.GetCoordinateIndices( newM )
-        #print "Drone %d: POSTMOVE: GPS:(%f|%f|%f)=(%d, %d, %d)"%(self.id, self.x, self.y,  self.z, x, y, z)
         obj = DroneMeasurement(self.xObjective, self.yObjective, self.zObjective, 0, 0)
         [xObj,yObj,zObj] = self.Maps.GetCoordinateIndices( obj )
-        if (x == x0) and (y == y0) and (z == z0):
-            outstr = "Drone %d: COORDINATES DID NOT CHANGE: GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
+        if (xOld == self.x) and (yOld == self.y) and (zOld == self.z):
+            print "Drone %d: COORDINATES DID NOT CHANGE: GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
         else:
             # Print current location, exploration status, and objective
             if self.isExploring is True:
-                outstr = "Drone %d: Exploring, GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
+                print "Drone %d: Exploring, GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
             else:
-                outstr = "Drone %d: NOT Exploring, GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
-        rospy.loginfo(outstr)
+                print "Drone %d: NOT Exploring, GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
 
     # Calculates distance to objective (in meters based on GPS coordinates)
     def DistanceToObjective(self):
@@ -128,10 +125,35 @@ class Drone:
         return ((xDist ** 2) + (yDist ** 2) + (zDist ** 2)) ** (1./2)
 
     def IsWithinSearchArea(self):
-        if ((self.x <= self.xMax) and (self.x >= self.xMin) and (self.y <= self.yMax) and (self.y >= self.yMin) and (self.z <= self.zMax) and (self.z >= self.zMin)):
+        if ((self.x <= self.xMax+ 0.5/111111.11) and (self.x >= self.xMin - 0.5/111111.11) and (self.y <= self.yMax + 0.5/111111.11) and (self.y >= self.yMin - 0.5/111111.11) and (self.z <= self.zMax + 0.5/111111.11) and (self.z >= self.zMin - 0.5/111111.11)):
             return 1
         else:
             return 0
+
+    def GetID(self):
+        return self.id
+
+    def SendDataTx(self):
+        #TODO: Is this correct if drone is currently swapping map information with another drone
+        if self.CommModule.GetCommStatus() == 1:
+            self.CommModule.DataTx()        
+
+    def UpdateMapsForDataTx(self):
+        if self.CommModule.GetGridTxReceivedStatus() == 1:
+            print "Drone %d: Received new data, updating maps, resetting status" %(self.id)
+            maps = self.Maps.CombineReceivedMaps(self.CommModule)
+            self.Maps = maps
+            self.CommModule.Maps = maps
+            self.CommModule.CompleteTx()
+
+    def CheckIfMapsSame(self, other):
+        return self.Maps.CheckIfMapsSame(other.Maps)
+
+    def CheckForTx(self):
+        self.CommModule.CheckToStartTx()
+
+    def GetTxStatus(self):
+        return self.CommModule.GetCommStatus()
 
     # Updates drone status:
     # Collect new data, update self/maps
@@ -144,19 +166,15 @@ class Drone:
     # Else if drone is not exploring
     #   If objective has been reached objective (proximity requirement is met)
     #       Set drone to exploring, set objective to next least explored location for current drone (based on ID)
-    def UpdateStatus(self):
+    def UpdateMaps(self):
         currMeasurement = self.DataCollect.GetNewMeasurement()
         self.UpdateLoc(currMeasurement)
 
         #If drone is outside search range
         if self.IsWithinSearchArea() == 0:
-            self.DataCollect.WaypointPublisher.publishWaypoint()
-            rospy.loginfo("Drone %d is not in exploration area [X:(%f|%f)/Y:(%f|%f)/Z:(%f|%f)] - current location is (%f|%f|%f)" %(self.id, self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax, self.x, self.y, self.z))
+            self.DataCollect.publishWaypoint()
+            print "Drone %d is not in exploration area [X:(%f|%f)/Y:(%f|%f)/Z:(%f|%f)] - current location is (%f|%f|%f)" %(self.id, self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax, self.x, self.y, self.z)
             return
-
-        #TODO: Is this correct if drone is currently swapping map information with another drone
-        if self.CommModule.Update() == 1:
-            self.CommModule.DataTx()
             
         #currMeasurement = self.DataCollect.GetNewMeasurement()
         #self.UpdateLoc(currMeasurement)
@@ -164,8 +182,7 @@ class Drone:
         dist = self.DistanceToObjective()
         withinProx = (dist < self.proximityReq)
         if withinProx:
-            outstr =  "Drone %d is within proximity %dm to target: distance to objective is (%f)" %(self.id, self.proximityReq, dist)
-            rospy.loginfo(outstr)
+            print "Drone %d is within proximity %dm to target: distance to objective is (%f)" %(self.id, self.proximityReq, dist)
             if self.isExploring == True:
                 currValMap = self.Maps.GetCurrentValueMapDist(self.t);
                 if numpy.any(currValMap > 0):
@@ -176,8 +193,7 @@ class Drone:
                     obj = DroneMeasurement(self.xObjective, self.yObjective, self.zObjective, 0, 0)
                     [x,y,z] = self.Maps.GetCoordinateIndices( obj )
                     self.isExploring = False;
-                    outstr =  "Drone %d reached target. Not exploring mode: moving to previously found event, new objective at (%f|%f|%f)=(%d|%d|%d)" %(self.id, self.xObjective, self.yObjective, self.zObjective, x, y, z)
-                    rospy.loginfo(outstr)
+                    print "Drone %d reached target. Not exploring mode: moving to previously found event, new objective at (%f|%f|%f)=(%d|%d|%d)" %(self.id, self.xObjective, self.yObjective, self.zObjective, x, y, z)
                     self.DataCollect.UpdateObjective(self.xObjective, self.yObjective, self.zObjective)
                 else:
                     (leastExploredX, leastExploredY, leastExploredZ) = self.Maps.GetCurrentLeastExplored(self.t)
@@ -186,8 +202,7 @@ class Drone:
                     self.zObjective = leastExploredZ*self.zResolutionSize+self.bounds['zMin']
                     obj = DroneMeasurement(self.xObjective, self.yObjective, self.zObjective, 0, 0)
                     [x,y,z] = self.Maps.GetCoordinateIndices( obj )
-                    outstr = "Drone %d reached target. No event found yet, exploring mode: moving to least explored, new objective at (%f|%f|%f)=(%d|%d|%d)" %(self.id, self.xObjective, self.yObjective, self.zObjective, x, y, z)
-                    rospy.loginfo(outstr)
+                    print "Drone %d reached target. No event found yet, exploring mode: moving to least explored, new objective at (%f|%f|%f)=(%d|%d|%d)" %(self.id, self.xObjective, self.yObjective, self.zObjective, x, y, z)
                     self.DataCollect.UpdateObjective(self.xObjective, self.yObjective, self.zObjective)
             else:
                 (leastExploredX, leastExploredY, leastExploredZ) = self.Maps.GetCurrentLeastExplored(self.t)
@@ -197,83 +212,278 @@ class Drone:
                 obj = DroneMeasurement(self.xObjective, self.yObjective, self.zObjective, 0, 0)
                 [x,y,z] = self.Maps.GetCoordinateIndices( obj )
                 self.isExploring = True
-                outstr = "Drone %d reached target. Exploring mode: moving to least explored, new objective at (%f|%f|%f)=(%d|%d|%d)" %(self.id, self.xObjective, self.yObjective, self.zObjective, x, y, z)
-                rospy.loginfo(outstr)
+                print "Drone %d reached target. Exploring mode: moving to least explored, new objective at (%f|%f|%f)=(%d|%d|%d)" %(self.id, self.xObjective, self.yObjective, self.zObjective, x, y, z)
                 self.DataCollect.UpdateObjective(self.xObjective, self.yObjective, self.zObjective)
         #else:
-            #outstr =  "Drone %d NOT within proximity %dm to target: distance to objective is (%f)" %(self.id, self.proximityReq, dist)
-            #rospy.loginfo(outstr)
+            #print "Drone %d NOT within proximity %dm to target: distance to objective is (%f)" %(self.id, self.proximityReq, dist)
         self.PublishObj()
 
     def PublishObj(self):
-        self.DataCollect.WaypointPublisher.publishWaypoint()
+        self.DataCollect.publishWaypoint()
 
 class DroneCommModule:
-    def __init__(self,id):
+    def __init__(self,id,resolutions):
         self.id = id
+        self.resolutions = resolutions
         self.CommReceiver = DroneCommSubscriber(self.id)
         self.CommReceiver.setSubscribe()
         self.TxInProgress = 0
         self.DronePartnerID = -1
-        self.GridTxSub = DroneGridTxSubscriber(self.id)
+        self.GridTxSub = DroneGridTxSubscriber(self.id, resolutions)
         self.GridTxSub.setSubscribe()
-        self.GridTxPub = DroneGridTxPublisher(self.id)
-        self.DataCollect = None
+        self.GridTxPub = DroneGridTxPublisher(self.id, resolutions)
+        self.Maps = None
+
+    def CompleteTx(self):
+        self.TxInProgress = 0
+        self.GridTxSub.CompleteTx()
+
     def GetCommStatus(self):
         return self.TxInProgress
-    def SetDataCollect(self, DC):
-        self.DataCollect = DC
-    def Update(self):
+
+    def GetGridTxReceivedStatus(self):
+        return self.GridTxSub.getTxReceived()
+
+    def SetMaps(self, maps):
+        self.Maps = maps
+        
+    def GetGridTxSubMaps(self):
+        return self.GridTxSub.getMaps()
+
+    def CheckToStartTx(self):
         self.CommReceiver.setSubscribe()
+        self.GridTxSub.setSubscribe()
         (self.TxInProgress, self.DronePartnerID) = self.CommReceiver.getStatus()
-        return self.TxInProgress
-    def DataTx(self):
         if self.TxInProgress == 1:
-            rospy.loginfo("Drone %d received proximity alert: drones %d + %d in communication range - doing nothing" %(self.id, self.id, self.DronePartnerID))
-            self.GridTxSub.setTxSender = self.DronePartnerID
-            self.GridTxPub.setTxPublisher = self.DronePartnerID
-            #valueMapDist = self.DataCollect.valueMapDist
-            #sensedTimesDist = self.DataCollect.sensedTimesDist
-            #minimumDistances = self.DataCollect.minimumDistances
+            self.GridTxSub.setTxSender(self.DronePartnerID)
+            self.GridTxPub.setTxReceiver(self.DronePartnerID)
+            print "Drone %d received proximity alert: drones %d + %d in communication range" %(self.id, self.id, self.DronePartnerID)
+
+    def DataTx(self):
+        self.GridTxSub.setSubscribe()
+        if self.TxInProgress == 1:
+            print "Drone %d: sending data tx to %d" %(self.id, self.DronePartnerID)
+            self.GridTxPub.publishGrids(self.Maps)
+            #while not self.GridTxSub.sender == -1:
+            #    print "Drone %d has not received data from partner drone %d, waiting 1s" %(self.id, self.DronePartnerID)
+            #    time.sleep(1.0)            
             self.CommReceiver.resetStatus()
+            #self.Maps.CombineMaps(self.GridTxSub.VMD, self.GridTxSub.STD, self.GridTxSub.MD, self.GridTxSub.VMR, self.GridTxSub.STR)
+
+    def CheckDataReceived(self,other):
+        print "Comparing Drone %d Grid Maps sent vs Drone %d Grid Sub received" %(self.id,other.id)
+        if numpy.allclose(self.Maps.valueMapDist,other.GridTxSub.VMD) and numpy.allclose(self.Maps.sensedTimesDist,other.GridTxSub.STD) and numpy.allclose(self.Maps.minimumDistances, other.GridTxSub.MD) and numpy.allclose(self.Maps.valueMapRecent,other.GridTxSub.VMR) and numpy.allclose(self.Maps.sensedTimesRecent, other.GridTxSub.STR):
+            print "ALL EQUAL"
+        else:
+           if not numpy.allclose(self.Maps.valueMapDist,other.GridTxSub.VMD):
+               print "VMD not equal"
+               a = numpy.argwhere(numpy.isclose(self.Maps.valueMapDist,other.GridTxSub.VMD).astype(int)==0)
+               print a.shape
+               for b in range(len(a)):
+                   i = a[b]
+                   #print "--(%d|%d|%d): self.VMD = %d | other.VMD = %d--" %(i[0],i[1],i[2],self.Maps.valueMapDist[i[0],i[1],i[2]],other.GridTxSub.VMD[i[0],i[1],i[2]]) 
+           if not numpy.allclose(self.Maps.sensedTimesDist,other.GridTxSub.STD):
+               print "STD not equal"
+               a = numpy.argwhere(numpy.isclose(self.Maps.sensedTimesDist,other.GridTxSub.STD).astype(int)==0)
+               print a.shape
+               for b in range(len(a)):
+                   i = a[b]
+                   #print "--(%d|%d|%d): self.STD = %d | other.STD = %d--" %(i[0],i[1],i[2],self.Maps.sensedTimesDist[i[0],i[1],i[2]],other.GridTxSub.STD[i[0],i[1],i[2]])
+               print "--(%d|%d|%d): self.STD = %d | other.STD = %d--" %(i[0]+1,i[1]+1,i[2]+1,self.Maps.sensedTimesDist[i[0]+1,i[1]+1,i[2]+1],other.GridTxSub.STD[i[0]+1,i[1]+1,i[2]+1])
+           if not numpy.allclose(self.Maps.minimumDistances, other.GridTxSub.MD):
+               print "MD not equal"
+               a = numpy.argwhere(numpy.isclose(self.Maps.minimumDistances, other.GridTxSub.MD).astype(int)==0)
+               print a.shape
+               for b in range(len(a)):
+                   i = a[b]
+                   #print "--(%d|%d|%d): self.MD = %d | other.MD = %d--" %(i[0],i[1],i[2],self.Maps.minimumDistances[i[0],i[1],i[2]],other.GridTxSub.MD[i[0],i[1],i[2]])
+           if not numpy.allclose(self.Maps.valueMapRecent,other.GridTxSub.VMR):
+               print "VMR not equal"
+               a = numpy.argwhere(numpy.isclose(self.Maps.valueMapRecent,other.GridTxSub.VMR).astype(int)==0)
+               print a.shape
+               for b in range(len(a)):
+                   i = a[b]
+                   #print "--(%d|%d|%d): self.VMR = %d | other.VMR = %d--" %(i[0],i[1],i[2],self.Maps.valueMapRecent[i[0],i[1],i[2]],other.GridTxSub.VMR[i[0],i[1],i[2]])
+           if numpy.allclose(self.Maps.sensedTimesRecent, other.GridTxSub.STR):
+               print "STR not equal"
+               a = numpy.argwhere(numpy.isclose(self.Maps.sensedTimesRecent, other.GridTxSub.STR).astype(int)==0)
+               print a.shape
+               for b in range(len(a)):
+                   i = a[b]
+                   #print "--(%d|%d|%d): self.STR = %d | other.STR = %d--" %(i[0],i[1],i[2],self.Maps.sensedTimesRecent[i[0],i[1],i[2]],other.GridTxSub.STR[i[0],i[1],i[2]])
 
 class DroneGridTxSubscriber:
-    def __init__(self, id):
+    def __init__(self, id,resolutions):
         self.id = id
+        self.resolutions = resolutions
         self.sender = -1
+        self.received = 0
         self.sub = None
+        self.VMD = numpy.zeros((self.resolutions['z'],self.resolutions['x'],self.resolutions['y']))
+        self.STD = numpy.zeros((self.resolutions['z'],self.resolutions['x'],self.resolutions['y']))
+        self.MD = numpy.zeros((self.resolutions['z'],self.resolutions['x'],self.resolutions['y']))
+        self.VMR = numpy.zeros((self.resolutions['z'],self.resolutions['x'],self.resolutions['y']))
+        self.STR = numpy.zeros((self.resolutions['z'],self.resolutions['x'],self.resolutions['y']))
     def setSubscribe(self):
         if self.sub == None:         #topic below
-            self.sub = rospy.Subscriber("GridTx", GridTx, self.TxReceive)
+            self.sub = rospy.Subscriber("GridTx", GridData, self.TxReceive)
     def TxReceive(self,msg):
         if (msg.target == self.id) and (msg.sender == self.sender):
-            rospy.loginfo("Drone %d Sub: Tx received from %d, data is %d, resetting sender" %(self.id, msg.data, self.sender))
-            self.sender = -1
+            print "Drone %d Sub: Tx received from %d, resetting sender" %(self.id, self.sender)
+
+            dstride0 = msg.VMD.layout.dim[0].stride
+            dstride1 = msg.VMD.layout.dim[1].stride
+            dstride2 = msg.VMD.layout.dim[2].stride
+            offset = msg.VMD.layout.data_offset
+
+            for i in range(self.resolutions['x']):
+                for j in range(self.resolutions['y']):
+                    for k in range(self.resolutions['z']):
+                        self.VMD[i,j,k] = msg.VMD.data[offset + dstride0*i + dstride1*j + dstride2*k]
+                        self.STD[i,j,k] = msg.STD.data[offset + dstride0*i + dstride1*j + dstride2*k]
+                        self.MD[i,j,k]  = msg.MD.data[ offset + dstride0*i + dstride1*j + dstride2*k]
+                        self.VMR[i,j,k] = msg.VMR.data[offset + dstride0*i + dstride1*j + dstride2*k]
+                        self.STR[i,j,k] = msg.STR.data[offset + dstride0*i + dstride1*j + dstride2*k]
+            self.received = 1
+
     def setTxSender(self, sender):
         if self.sender == -1:
             self.sender = sender
-            rospy.loginfo("Drone %d Sub: Setting tx sender to: %d" %(self.id, self.sender))
+            print "Drone %d Sub: Setting tx sender to: %d" %(self.id, self.sender)
         else:
-            rospy.loginfo("Drone %d Sub: Already has tx sender %d, %d rejected" %(self.id, self.sender, sender))
+            print "Drone %d Sub: Already has tx sender %d, %d rejected" %(self.id, self.sender, sender)
+
+    def CompleteTx(self):
+        self.received = 0
+        self.sender = -1
+
+    def getMaps(self):
+        return (self.VMD, self.STD, self.MD, self.VMR, self.STR)
+
+    def getTxReceived(self):
+        return self.received
 
 class DroneGridTxPublisher:
-    def __init__(self, id):
+    def __init__(self, id,resolutions):
         self.id = id
+        self.resolutions = resolutions
         self.receiver = -1
-        self.pub = rospy.Publisher("GridTx", GridTx, queue_size=1)
+        self.pub = rospy.Publisher("GridTx", GridData, queue_size=1)
+
     def setTxReceiver(self, receiver):
         if self.receiver == -1:
             self.receiver = receiver
-            rospy.loginfo("Drone %d Pub: Setting tx receiver to: %d" %(self.id, self.receiver))
+            print "Drone %d Pub: Setting tx receiver to: %d" %(self.id, self.receiver)
         else:
-            rospy.loginfo("Drone %d Pub: Already has tx receiver %d, %d rejected" %(self.id, self.receiver, receiver))
-    def publishGrid(self):
-        msg = GridTx()
-        msg.sender = self.longitude
-        msg.receiver = self.latitude
-        msg.data = 0
-        #rospy.loginfo("Drone %d: publishing objective (%f|%f|%f) on %s" %(self.id, self.longitude, self.latitude, self.altitude, self.WaypointPublisherName))
+            print "Drone %d Pub: Already has tx receiver %d, %d rejected" %(self.id, self.receiver, receiver)
+
+    def publishGrids(self, maps):
+        msg = GridData()
+        msg.target = self.receiver
+        msg.sender = self.id
+
+        VMD = Float32MultiArray()
+        VMD.layout.dim.append(MultiArrayDimension())
+        VMD.layout.dim.append(MultiArrayDimension())
+        VMD.layout.dim.append(MultiArrayDimension())
+        VMD.layout.dim[0].label = "long"
+        VMD.layout.dim[1].label = "lat"
+        VMD.layout.dim[2].label = "alt"
+        VMD.layout.dim[0].size = self.resolutions['x']
+        VMD.layout.dim[1].size = self.resolutions['y']
+        VMD.layout.dim[2].size = self.resolutions['z']
+        VMD.layout.dim[0].stride = self.resolutions['x']*self.resolutions['y']
+        VMD.layout.dim[1].stride = self.resolutions['y']
+        VMD.layout.dim[2].stride = 1
+        VMD.layout.data_offset = 0
+        VMD.data = [0]*(self.resolutions['z']*self.resolutions['y']*self.resolutions['z'])
+
+        STD = Float32MultiArray()
+        STD.layout.dim.append(MultiArrayDimension())
+        STD.layout.dim.append(MultiArrayDimension())
+        STD.layout.dim.append(MultiArrayDimension())
+        STD.layout.dim[0].label = "long"
+        STD.layout.dim[1].label = "lat"
+        STD.layout.dim[2].label = "alt"
+        STD.layout.dim[0].size = self.resolutions['x']
+        STD.layout.dim[1].size = self.resolutions['y']
+        STD.layout.dim[2].size = self.resolutions['z']
+        STD.layout.dim[0].stride = self.resolutions['x']*self.resolutions['y']
+        STD.layout.dim[1].stride = self.resolutions['y']
+        STD.layout.dim[2].stride = 1
+        STD.layout.data_offset = 0
+        STD.data = [0]*(self.resolutions['z']*self.resolutions['y']*self.resolutions['z'])
+
+        MD = Float32MultiArray()
+        MD.layout.dim.append(MultiArrayDimension())
+        MD.layout.dim.append(MultiArrayDimension())
+        MD.layout.dim.append(MultiArrayDimension())
+        MD.layout.dim[0].label = "long"
+        MD.layout.dim[1].label = "lat"
+        MD.layout.dim[2].label = "alt"
+        MD.layout.dim[0].size = self.resolutions['x']
+        MD.layout.dim[1].size = self.resolutions['y']
+        MD.layout.dim[2].size = self.resolutions['z']
+        MD.layout.dim[0].stride = self.resolutions['x']*self.resolutions['y']
+        MD.layout.dim[1].stride = self.resolutions['y']
+        MD.layout.dim[2].stride = 1
+        MD.layout.data_offset = 0
+        MD.data = [0]*(self.resolutions['z']*self.resolutions['y']*self.resolutions['z'])
+
+        VMR = Float32MultiArray()
+        VMR.layout.dim.append(MultiArrayDimension())
+        VMR.layout.dim.append(MultiArrayDimension())
+        VMR.layout.dim.append(MultiArrayDimension())
+        VMR.layout.dim[0].label = "long"
+        VMR.layout.dim[1].label = "lat"
+        VMR.layout.dim[2].label = "alt"
+        VMR.layout.dim[0].size = self.resolutions['x']
+        VMR.layout.dim[1].size = self.resolutions['y']
+        VMR.layout.dim[2].size = self.resolutions['z']
+        VMR.layout.dim[0].stride = self.resolutions['x']*self.resolutions['y']
+        VMR.layout.dim[1].stride = self.resolutions['y']
+        VMR.layout.dim[2].stride = 1
+        VMR.layout.data_offset = 0
+        VMR.data = [0]*(self.resolutions['z']*self.resolutions['y']*self.resolutions['z'])
+
+        STR = Float32MultiArray()
+        STR.layout.dim.append(MultiArrayDimension())
+        STR.layout.dim.append(MultiArrayDimension())
+        STR.layout.dim.append(MultiArrayDimension())
+        STR.layout.dim[0].label = "long"
+        STR.layout.dim[1].label = "lat"
+        STR.layout.dim[2].label = "alt"
+        STR.layout.dim[0].size = self.resolutions['x']
+        STR.layout.dim[1].size = self.resolutions['y']
+        STR.layout.dim[2].size = self.resolutions['z']
+        STR.layout.dim[0].stride = self.resolutions['x']*self.resolutions['y']
+        STR.layout.dim[1].stride = self.resolutions['y']
+        STR.layout.dim[2].stride = 1
+        STR.layout.data_offset = 0
+        STR.data = [0]*(self.resolutions['z']*self.resolutions['y']*self.resolutions['z'])
+
+        dstride0 = VMD.layout.dim[0].stride
+        dstride1 = VMD.layout.dim[1].stride
+        dstride2 = VMD.layout.dim[2].stride
+        offset = VMD.layout.data_offset
+
+        for i in range(self.resolutions['x']):
+            for j in range(self.resolutions['y']):
+                for k in range(self.resolutions['z']):
+                   VMD.data[offset + dstride0*i + dstride1*j + dstride2*k] = maps.valueMapDist[i,j,k]
+                   STD.data[offset + dstride0*i + dstride1*j + dstride2*k] = maps.sensedTimesDist[i,j,k]
+                   MD.data[ offset + dstride0*i + dstride1*j + dstride2*k] = maps.minimumDistances[i,j,k]
+                   VMR.data[offset + dstride0*i + dstride1*j + dstride2*k] = maps.valueMapRecent[i,j,k]
+                   STR.data[offset + dstride0*i + dstride1*j + dstride2*k] = maps.sensedTimesRecent[i,j,k]
+
+        msg.VMD = VMD
+        msg.STD = STD
+        msg.MD = MD
+        msg.VMR = VMR
+        msg.STR = STR
+
         self.pub.publish(msg)
+        self.receiver = -1
 
 class DroneCommSubscriber:
     def __init__(self, id):
@@ -293,53 +503,58 @@ class DroneCommSubscriber:
         elif d2 == self.id:
             self.dronePartner = d1
             self.status = 1
-        rospy.loginfo("Drone %d: pair (%d/%d) in communication range!" %(self.id, d1, d2))
+        print "Drone %d: pair (%d/%d) in communication range!" %(self.id, d1, d2)
     def resetStatus(self):
         self.status = 0
         self.dronePartner = -1
-        rospy.loginfo("Drone %d: Resetting communication status"%(self.id)) 
+        print "Drone %d: Resetting communication status"%(self.id)
     def getStatus(self):
         return (self.status,self.dronePartner)
 
 class DroneGPSSubscriber:
     def __init__(self, id):
         self.id = id
-        self.GPSReceiverName = "uav%d/mavros/state" %id
+        self.GPSReceiverName = "uav%d/mavros/global_position/global" %id                                               #TODO MICHAEL: Change GPS topic to yours here
         self.longitude = -1000
         self.latitude = -1000
         self.altitude = -1000
         self.sub = None
+
     def setSubscribe(self):
         if self.sub == None:         #topic below
-            self.sub = rospy.Subscriber(self.GPSReceiverName, NavSatFix, self.GPSReceive)
+            self.sub = rospy.Subscriber(self.GPSReceiverName, NavSatFix, self.GPSReceive)               #TODO MICHAEL: Change GPS topic to yours AND/OR here
+
     def GPSReceive(self,msg):
         self.longitude = msg.longitude
         self.latitude = msg.latitude
         self.altitude = msg.altitude
-        #rospy.loginfo("Drone %d: received GPS location (%f|%f|%f)" %(self.id, msg.longitude, msg.latitude, msg.altitude))
+        #print "Drone %d: received GPS location (%f|%f|%f)" %(self.id, msg.longitude, msg.latitude, msg.altitude)
+
     def getGPS(self):
-        #rospy.loginfo("Get location issued: location is now (%f|%f|%f)" %(self.longitude, self.latitude, self.altitude))
+        #print "Get location issued: location is now (%f|%f|%f)" %(self.longitude, self.latitude, self.altitude)
         return {'longitude':self.longitude,'latitude':self.latitude,'altitude':self.altitude}
 
 class DroneWaypointPublisher:
     def __init__(self, id):
         self.id = id
-        self.WaypointPublisherName = "FakeDroneObj_%d" %id
+        self.WaypointPublisherName = "FakeDroneObj_%d" %id                                                  # TODO Michael: Set your script to listen to this objective publisher
         self.longitude = 1000
         self.latitude = 1000
         self.altitude = 1000        #topic below
         self.pub = rospy.Publisher(self.WaypointPublisherName, NavSatFix, queue_size=1)
+
     def setWaypoint(self, waypoint):
         self.longitude = waypoint['longitude']
         self.latitude = waypoint['latitude']
         self.altitude = waypoint['altitude']
-        #rospy.loginfo("Drone %d objective publisher: objective is now (%f|%f|%f)" %(self.id, self.longitude, self.latitude, self.altitude))
+        #print "Drone %d objective publisher: objective is now (%f|%f|%f)" %(self.id, self.longitude, self.latitude, self.altitude)
+
     def publishWaypoint(self):
         msg = NavSatFix()
         msg.longitude = self.longitude
         msg.latitude = self.latitude
         msg.altitude = self.altitude
-        #rospy.loginfo("Drone %d: publishing objective (%f|%f|%f) on %s" %(self.id, self.longitude, self.latitude, self.altitude, self.WaypointPublisherName))
+        #print "Drone %d: publishing objective (%f|%f|%f) on %s" %(self.id, self.longitude, self.latitude, self.altitude, self.WaypointPublisherName)
         self.pub.publish(msg)
 
 class DroneSensorSubscriber:
@@ -348,14 +563,17 @@ class DroneSensorSubscriber:
         self.SensorReceiverName = "FakeDroneSensor_%d" %id
         self.value = 0
         self.sub = None
+
     def setSubscribe(self):
         if self.sub == None:
             self.sub = rospy.Subscriber(self.SensorReceiverName, GasSensorData, self.SensorReceive)
+
     def SensorReceive(self,msg):
         self.value = msg.value
-        #rospy.loginfo("Drone %d: received sensor data value %f" %(self.id, self.value))
+        #print "Drone %d: received sensor data value %f" %(self.id, self.value)
+
     def getValue(self):
-        #rospy.loginfo("Get sensor value issued: last received value is %f" %(self.value))
+        #print "Get sensor value issued: last received value is %f" %(self.value)
         return self.value
 
 # Drone data aggregation class. Collects sensor data of interest for drone.
@@ -367,7 +585,7 @@ class DroneDataCollection:
     # a map of fake events which determine fake sensor data output
     def __init__(self, id):
         self.id = id
-        self.GPSReceiverName = "uav%d/mavros/state" %id
+        self.GPSReceiverName = "iris_%d/mavros/state" %id
         self.GPSReceiver = DroneGPSSubscriber(id)
         self.WaypointPublisherName = "FakeDroneObj_%d" %id
         self.WaypointPublisher = DroneWaypointPublisher(id)
@@ -381,19 +599,14 @@ class DroneDataCollection:
         self.x = GPSLoc['latitude']
         self.y = GPSLoc['longitude']
         self.z = GPSLoc['altitude']
-        #rospy.loginfo("Start GPS for drone %d dataaggregator is set! Start GPS is: (%f|%f|%f)" %(self.id, self.x, self.y, self.z))
-
+        #print "Start GPS for drone %d dataaggregator is set! Start GPS is: (%f|%f|%f)" %(self.id, self.x, self.y, self.z)
         self.xObjective = -1000
         self.yObjective = -1000
         self.zObjective = -1000
         self.t = 0
         self.DroneComms = None
 
-    def SetCommModule(self, DC):
-        self.DroneComms = DC
-
     # Should pull GPS/sensor data from NAVIO and return data in DroneMeasurement form
-    # NEEDS UPDATING. Current standalone python test implementation performs a fake move and calculates fake values
     def GetNewMeasurement(self):
         self.GPSReceiver.setSubscribe()
         self.SensorReceiver.setSubscribe()
@@ -411,10 +624,13 @@ class DroneDataCollection:
         self.yObjective = y
         self.zObjective = z
         self.WaypointPublisher.setWaypoint({'latitude':self.xObjective,'longitude':self.yObjective,'altitude':self.zObjective})
-        #rospy.loginfo("Updating objective for drone %d dataaggregator: (%f|%f|%f)" %(self.id, self.yObjective, self.xObjective, self.zObjective))
+        #print "Updating objective for drone %d dataaggregator: (%f|%f|%f)" %(self.id, self.yObjective, self.xObjective, self.zObjective)
 
     def GetGPS(self):
         return {'x':self.x,'y':self.y,'z':self.z}
+
+    def publishWaypoint(self):
+        self.WaypointPublisher.publishWaypoint()
 
 # Drone Mapping Class. Maintains the drone's ID, sniffradius, aging exponent, exploration area dimensions,
 #   measurements (measured values for each grid location visited)
@@ -457,30 +673,22 @@ class DroneObjectiveMapping:
     # If enough time has passed (based on agingExponent), reset values in minimumDistances grid to Inf
     def UpdateMaps(self, measurement):
         [x,y,z] = self.GetCoordinateIndices( measurement )
-        #outstr = "Drone is at coordinates (%d|%d|%d)" %(x,y,z)
-        #rospy.loginfo(outstr)
+        #print "Drone is at coordinates (%d|%d|%d)" %(x,y,z)
         t = measurement.t
         val = measurement.value
         actualDistances = numpy.power(((self.x - x) ** 2) + ((self.y - y) ** 2) + ((self.z - z) ** 2), 1./2.)
-        distances = actualDistances
-        distGTsniffRadius = (distances > self.sniffRadius).astype(int)
+        distancesInRange = actualDistances
+        distGTsniffRadius = (actualDistances > self.sniffRadius).astype(int)
         distLTEQsniffRadius = (numpy.logical_not(distGTsniffRadius)).astype(int)
-        distances = (distances * distLTEQsniffRadius) + (10000 * distGTsniffRadius)
+        distancesInRange = (distancesInRange * distLTEQsniffRadius) + (100000 * distGTsniffRadius)
 
-        actualGTminimum = (actualDistances > self.minimumDistances).astype(int)
-        actualLTEQminimum = (numpy.logical_not(actualGTminimum)).astype(int)
-        self.valueMapDist = self.valueMapDist * actualGTminimum + actualLTEQminimum * val
-        self.sensedTimesDist = self.sensedTimesDist * actualGTminimum + actualLTEQminimum * t
-        self.minimumDistances = self.minimumDistances * actualGTminimum + actualLTEQminimum * actualDistances
-        #print(self.valueMapDist)
-        #print(self.sensedTimesDist)
-        #print(self.minimumDistances)
-
+        GTPrevMinDist = (distancesInRange > self.minimumDistances).astype(int)
+        LTEQPrevMinDist = (numpy.logical_not(GTPrevMinDist)).astype(int)
+        self.valueMapDist = self.valueMapDist * GTPrevMinDist + LTEQPrevMinDist * val
+        self.sensedTimesDist = self.sensedTimesDist * GTPrevMinDist + LTEQPrevMinDist * t
+        self.minimumDistances = self.minimumDistances * GTPrevMinDist + LTEQPrevMinDist * actualDistances
         self.valueMapRecent = self.valueMapRecent * distGTsniffRadius + distLTEQsniffRadius * val
         self.sensedTimesRecent = self.sensedTimesRecent * distGTsniffRadius + distLTEQsniffRadius * t
-        #print(self.valueMapDist)
-        #print(self.sensedTimesDist)
-        #print(self.minimumDistances)
 
         # If non-0 values have been recorded, reset values that are too old
         if numpy.size(self.valueMapDist[ numpy.where( self.valueMapDist > 1 ) ]) > 0:
@@ -538,54 +746,129 @@ class DroneObjectiveMapping:
         self.minimumDistances = other.minimumDistances
         self.valueMapRecent = other.valueMapRecent
         self.sensedTimesRecent = other.sensedTimesRecent
+    
+
+    def CheckIfMapsSame(self, other):
+        if numpy.allclose(self.valueMapDist,other.valueMapDist) and numpy.allclose(self.sensedTimesDist,other.sensedTimesDist) and numpy.allclose(self.minimumDistances, other.minimumDistances) and numpy.allclose(self.valueMapRecent,other.valueMapRecent) and numpy.allclose(self.sensedTimesRecent, other.sensedTimesRecent):
+            print "ALL EQUAL"
+            return 1
+        else:
+            if not numpy.allclose(self.valueMapDist,other.valueMapDist):
+                print "VMD not equal"
+                a = numpy.argwhere(numpy.isclose(self.valueMapDist,other.valueMapDist).astype(int)==0)
+                print a.shape
+                for b in range(len(a)):
+                    i = a[b]
+                    #print "--(%d|%d|%d): self.VMD = %d | other.VMD = %d--" %(i[0],i[1],i[2],self.valueMapDist[i[0],i[1],i[2]],other.valueMapDist[i[0],i[1],i[2]]) 
+            if not numpy.allclose(self.sensedTimesDist,other.sensedTimesDist):
+                print "STD not equal"
+                a = numpy.argwhere(numpy.isclose(self.sensedTimesDist,other.sensedTimesDist).astype(int)==0)
+                print a.shape
+                for b in range(len(a)):
+                    i = a[b]
+                    #print "--(%d|%d|%d): self.STD = %d | other.STD = %d--" %(i[0],i[1],i[2],self.sensedTimesDist[i[0],i[1],i[2]],other.sensedTimesDist[i[0],i[1],i[2]])
+            if not numpy.allclose(self.minimumDistances, other.minimumDistances):
+                print "MD not equal"
+                a = numpy.argwhere(numpy.isclose(self.minimumDistances,other.minimumDistances).astype(int)==0)
+                print a.shape
+                for b in range(len(a)):
+                    i = a[b]
+                    #print "--(%d|%d|%d): self.MD = %d | other.MD = %d--" %(i[0],i[1],i[2],self.minimumDistances[i[0],i[1],i[2]],other.minimumDistances[i[0],i[1],i[2]])
+            if not numpy.allclose(self.valueMapRecent,other.valueMapRecent):
+                print "VMR not equal"
+                a = numpy.argwhere(numpy.isclose(self.valueMapRecent,other.valueMapRecent).astype(int)==0)
+                print a.shape
+                for b in range(len(a)):
+                    i = a[b]
+                    #print "--(%d|%d|%d): self.VMR = %d | other.VMR = %d--" %(i[0],i[1],i[2],self.valueMapRecent[i[0],i[1],i[2]],other.valueMapRecent[i[0],i[1],i[2]])
+            if not numpy.allclose(self.sensedTimesRecent,other.sensedTimesRecent):
+                print "STR not equal"
+                a = numpy.argwhere(numpy.isclose(self.sensedTimesRecent,other.sensedTimesRecent).astype(int)==0)
+                print a.shape
+                for b in range(len(a)):
+                    i = a[b]
+                    #print "--(%d|%d|%d): self.STR = %d | other.STR = %d--" %(i[0],i[1],i[2],self.sensedTimesRecent[i[0],i[1],i[2]],other.sensedTimesRecent[i[0],i[1],i[2]])
+            return 0
+
+    # Sets current DroneObjectiveMapping object's valueMapDist, sensedTimesDist, valueMapRecent, sensedTimesRecent, and minimumDistances 
+    # to that of DroneObjectiveMapping object "other"
+    def MergeMaps(self, VMD, STD, MD, VMR, STR):
+        self.valueMapDist = VMD
+        self.sensedTimesDist = STD
+        self.minimumDistances = MD
+        self.valueMapRecent = VMR
+        self.sensedTimesRecent = STR
 
     # Combines current DroneObjectiveMapping object with that of "other" into a new returned object.
     # For distance based grids, saves the values of the drone which has the lower minimumDistance value per grid location (closest visit)
     # For time based grids, saves the values of the drone which has the lower sesnedTimesRecent value per grid location (most recent visit)
     def Combine(self, other):
-        combined = DroneObjectiveMapping( self.bounds, self.resolutions, id )
-        combined.eventMap = self.eventMap
+        combined = DroneObjectiveMapping( self.bounds, self.resolutions, self.id )
 
-        smallerDist = (self.minimumDistances < other.minimumDistances).astype(int)
-        smallerDistInv = (numpy.logical_not(smallerDist)).astype(int)
-        tempSelf = self.valueMapDist * smallerDist
-        tempOther = other.valueMapDist * smallerDistInv
-        combined.valueMapDist = tempSelf + tempOther
-        tempSelf = self.sensedTimesDist * smallerDist
-        tempOther = other.sensedTimesDist * smallerDistInv
-        combined.sensedTimesDist = tempSelf + tempOther
-        #numpy.savetxt("minDist1.txt",self.minimumDistances,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("minDist2.txt",other.minimumDistances,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("minDist1<minDist2.txt",smallerDist,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("minDist1>=minDist2.txt",smallerDistInv,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("sensedTimes1.txt",self.sensedTimesDist,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("sensedTimes2.txt",other.sensedTimesDist,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("sensedTimes1*(minDist1<minDist2).txt",tempSelf,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("sensedTimes2*(minDist1>=minDist2).txt",tempOther,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("combined_sensedTimes.txt",combined.sensedTimesDist,fmt='%1.3f',delimiter=",")
-        tempSelf = self.minimumDistances * smallerDist
-        tempOther = other.minimumDistances * smallerDistInv
-        combined.minimumDistances = tempSelf + tempOther
-        #numpy.savetxt("combined_minDist.txt",combined.minimumDistances,fmt='%1.3f',delimiter=",")
+        distSelfSmaller = (self.minimumDistances < other.minimumDistances).astype(int)
+        distOtherSmaller = (self.minimumDistances > other.minimumDistances).astype(int)
+        distEqual = numpy.ones(distSelfSmaller.shape)-distSelfSmaller-distOtherSmaller
 
-        moreRecentSensedTimes = (self.sensedTimesRecent >= other.sensedTimesRecent).astype(int)
-        moreRecentSensedTimesInv = (numpy.logical_not(moreRecentSensedTimes)).astype(int)
-        tempSelf = self.valueMapRecent * moreRecentSensedTimes
-        tempOther = other.valueMapRecent * moreRecentSensedTimesInv
-        combined.valueMapRecent = tempSelf + tempOther
-        tempSelf = self.sensedTimesRecent * moreRecentSensedTimes
-        tempOther = other.sensedTimesRecent * moreRecentSensedTimesInv
-        combined.sensedTimesDist = tempSelf + tempOther
-        #numpy.savetxt("minDist1.txt",self.minimumDistances,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("minDist2.txt",other.minimumDistances,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("minDist1<minDist2.txt",smallerDist,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("minDist1>=minDist2.txt",smallerDistInv,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("sensedTimes1.txt",self.sensedTimesDist,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("sensedTimes2.txt",other.sensedTimesDist,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("sensedTimes1*(minDist1<minDist2).txt",tempSelf,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("sensedTimes2*(minDist1>=minDist2).txt",tempOther,fmt='%1.3f',delimiter=",")
-        #numpy.savetxt("combined_sensedTimes.txt",combined.sensedTimesDist,fmt='%1.3f',delimiter=",")
-    
+        tempSelf = self.valueMapDist * distSelfSmaller
+        tempOther = other.valueMapDist * distOtherSmaller
+        tempEqual = numpy.maximum((self.valueMapDist * distEqual),(other.valueMapDist * distEqual))
+        combined.valueMapDist = tempSelf + tempOther + tempEqual
+
+        tempSelf = self.sensedTimesDist * distSelfSmaller
+        tempOther = other.sensedTimesDist * distOtherSmaller
+        tempEqual = numpy.maximum((self.sensedTimesDist * distEqual),(other.sensedTimesDist * distEqual))
+        combined.sensedTimesDist = tempSelf + tempOther + tempEqual
+
+        combined.minimumDistances = numpy.minimum(self.minimumDistances,other.minimumDistances)
+
+        selfMoreRecent = (self.sensedTimesRecent > other.sensedTimesRecent).astype(int)
+        otherMoreRecent = (other.sensedTimesRecent < STR).astype(int)
+        bothMoreRecent = numpy.ones(otherMoreRecent.shape)-selfMoreRecent-otherMoreRecent
+
+        tempSelf = self.valueMapRecent * selfMoreRecent
+        tempOther = other.valueMapRecent * otherMoreRecent
+        tempEqual = numpy.maximum((self.valueMapRecent * bothMoreRecent),(other.valueMapRecent * bothMoreRecent))
+        combined.valueMapRecent = tempSelf + tempOther + tempEqual
+
+        combined.sensedTimesRecent = numpy.maximum(self.sensedTimesRecent,other.sensedTimesRecent)
+
+        return combined
+
+    # Combines current DroneObjectiveMapping object with that of "other" into a new returned object.
+    # For distance based grids, saves the values of the drone which has the lower minimumDistance value per grid location (closest visit)
+    # For time based grids, saves the values of the drone which has the lower sesnedTimesRecent value per grid location (most recent visit)
+    def CombineReceivedMaps(self, commModule):
+        combined = DroneObjectiveMapping( self.bounds, self.resolutions, self.id )
+
+        (VMD, STD, MD, VMR, STR) = commModule.GetGridTxSubMaps()
+
+        distSelfSmaller = (self.minimumDistances < MD).astype(int)
+        distOtherSmaller = (self.minimumDistances > MD).astype(int)
+        distEqual = numpy.ones(distSelfSmaller.shape)-distSelfSmaller-distOtherSmaller
+
+        tempSelf = self.valueMapDist * distSelfSmaller
+        tempOther = VMD * distOtherSmaller
+        tempEqual = numpy.maximum((self.valueMapDist * distEqual),(VMD * distEqual))
+        combined.valueMapDist = tempSelf + tempOther + tempEqual
+
+        tempSelf = self.sensedTimesDist * distSelfSmaller
+        tempOther = STD * distOtherSmaller
+        tempEqual = numpy.maximum((self.sensedTimesDist * distEqual),(STD * distEqual))
+        combined.sensedTimesDist = tempSelf + tempOther + tempEqual
+
+        combined.minimumDistances = numpy.minimum(self.minimumDistances,MD)
+
+        selfMoreRecent = (self.sensedTimesRecent > STR).astype(int)
+        otherMoreRecent = (self.sensedTimesRecent < STR).astype(int)
+        bothMoreRecent = numpy.ones(otherMoreRecent.shape)-selfMoreRecent-otherMoreRecent
+
+        tempSelf = self.valueMapRecent * selfMoreRecent
+        tempOther = VMR * otherMoreRecent
+        tempEqual = numpy.maximum((self.valueMapRecent * bothMoreRecent),(VMR * bothMoreRecent))
+        combined.valueMapRecent = tempSelf + tempOther + tempEqual
+
+        combined.sensedTimesRecent = numpy.maximum(self.sensedTimesRecent,STR)
+
         return combined
 
 # Currently unused, may be used later for drone-to-drone communication

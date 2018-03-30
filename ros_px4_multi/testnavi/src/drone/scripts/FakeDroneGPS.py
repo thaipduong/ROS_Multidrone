@@ -14,10 +14,12 @@ from drone.msg import GasSensorData
 from drone.msg import DroneComm
 from sensor_msgs.msg import NavSatFix
 
+# TODO MICHAEL: Ignore this file you don't need to use it
+
 class TestGPSPublisher:
     def __init__(self, id):
         self.id = id
-        self.moduleName = "uav%d/mavros/state" %id
+        self.moduleName = "iris_%d/mavros/state" %id
         self.pub = rospy.Publisher(self.moduleName, NavSatFix, queue_size=1)
 
     def publishGPS(self, longi, lat, height):
@@ -25,7 +27,7 @@ class TestGPSPublisher:
         msg.longitude = longi
         msg.latitude = lat
         msg.altitude = height
-        #rospy.loginfo("FakeDroneGPS %d: sending GPS (%f|%f|%f) on %s" %(self.id, msg.longitude, msg.latitude, msg.altitude, self.moduleName))
+        #print "FakeDroneGPS %d: sending GPS (%f|%f|%f) on %s" %(self.id, msg.longitude, msg.latitude, msg.altitude, self.moduleName)
         self.pub.publish(msg)
 
 class TestObjSubscriber:
@@ -43,7 +45,7 @@ class TestObjSubscriber:
         self.yObj = msg.longitude
         self.xObj = msg.latitude
         self.zObj = msg.altitude
-        #rospy.loginfo("FakeDroneGPS %d: received objective (%f|%f|%f) on %s" %(self.id, msg.longitude, msg.latitude, msg.altitude, self.moduleName))
+        #print "FakeDroneGPS %d: received objective (%f|%f|%f) on %s" %(self.id, msg.longitude, msg.latitude, msg.altitude, self.moduleName)
     def GetObj(self):
         return (self.xObj, self.yObj, self.zObj)
 
@@ -53,8 +55,6 @@ class FakeDroneGPS:
     # Constructor. Requires start GPS location, drone id
     def __init__(self, xStart, yStart, zStart, id):
         self.id = id
-        #self.moduleName = "iris_%d/mavros/state" %id
-        #rospy.init_node(self.moduleName, anonymous = True)
         self.x = xStart
         self.y = yStart
         self.z = zStart
@@ -74,12 +74,11 @@ class FakeDroneGPS:
     def FakeMove(self):
         self.ROSGPSOBJ.setSubscribe()
         (newX, newY, newZ) = self.ROSGPSOBJ.GetObj()
-        #if(newX != self.xObj or newY != self.yObj or newZ != self.zObj):
         self.xObj = newX
         self.yObj = newY
         self.zObj = newZ
-        #rospy.loginfo("FakeDroneGPS %d: Current location: (%f|%f|%f)" %(self.id, self.y, self.x,self.z))
-        #rospy.loginfo("FakeDroneGPS %d: Current objective: (%f|%f|%f)" %(self.id, self.yObj, self.xObj, self.zObj))
+        #print "FakeDroneGPS %d: Current location: (%f|%f|%f)" %(self.id, self.y, self.x,self.z)
+        #print "FakeDroneGPS %d: Current objective: (%f|%f|%f)" %(self.id, self.yObj, self.xObj, self.zObj)
         self.ROSGPSLOC.publishGPS(self.y,self.x,self.z)
 
         if (self.xObj == -1000 or self.xObj == -1000 or self.xObj == -1000):
@@ -107,8 +106,17 @@ class FakeDroneGPS:
                 self.z = self.z - 0.5
             else:
                 self.z = self.z + 0.5
-            #rospy.loginfo("Fake move for FakeDroneGPS %d: location is now (%f|%f|%f)" %(self.id, self.y, self.x,self.z))
+            #print "Fake move for FakeDroneGPS %d: location is now (%f|%f|%f)" %(self.id, self.y, self.x,self.z)
             self.ROSGPSLOC.publishGPS(self.y,self.x,self.z)
     # Update drone GPS location based on input measurement
     def PublishGPS(self):
         self.ROSGPSLOC.publishGPS(self.y,self.x,self.z)
+
+
+
+
+
+
+
+
+

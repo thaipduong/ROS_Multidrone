@@ -18,41 +18,39 @@ class GasSensorPublisher:
     def __init__(self, id):
         self.id = id
         self.moduleName = "FakeDroneSensor_%d" %id
-        self.pub = rospy.Publisher(self.moduleName, GasSensorData, queue_size=1)
+        self.pub = rospy.Publisher(self.moduleName, GasSensorData, queue_size=1) 
     def publishGasData(self, val):
         msg = GasSensorData()
         msg.value = val
-        #rospy.loginfo("Fake sensor sending fake data: %f" %(msg.value))
+        #print "Fake sensor sending fake data: %f" %(msg.value)
         self.pub.publish(msg)
 
 class DroneGPSSubscriber:
     def __init__(self, id):
         self.id = id
-        self.GPSReceiverName = "uav%d/mavros/state" %id
+        self.GPSReceiverName = "uav%d/mavros/global_position/global" %id                                           #TODO MICHAEL: Change GPS topic to yours here
         self.longitude = -1000
         self.latitude = -1000
         self.altitude = -1000
         self.sub = None
     def setSubscribe(self):
         if self.sub == None:         #topic below
-            self.sub = rospy.Subscriber(self.GPSReceiverName, NavSatFix, self.GPSReceive)
+            self.sub = rospy.Subscriber(self.GPSReceiverName, NavSatFix, self.GPSReceive)           #TODO MICHAEL: Change GPS topic to yours AND/OR here
     def GPSReceive(self,msg):
         self.longitude = msg.longitude
         self.latitude = msg.latitude
         self.altitude = msg.altitude
-        #rospy.loginfo("FakeDroneSensor %d: received GPS (%f|%f|%f)" %(self.id, msg.longitude, msg.latitude, msg.altitude))
+        #print "FakeDroneSensor %d: received GPS (%f|%f|%f)" %(self.id, msg.longitude, msg.latitude, msg.altitude)
     def getGPS(self):
-        #rospy.loginfo("Get location issued: location is now (%f|%f|%f)" %(self.longitude, self.latitude, self.altitude))
+        #print "Get location issued: location is now (%f|%f|%f)" %(self.longitude, self.latitude, self.altitude)
         return {'longitude':self.longitude,'latitude':self.latitude,'altitude':self.altitude}
 
 class FakeDroneSensor:
     def __init__(self, xRange, yRange, zRange, resolutions, randFlag, id, numEvents, detectionRange):
         # Calculate explorable area grid bounds in terms of GPS locations based on input exploration area size
         self.id = id
-        #self.moduleName = "FakeDroneSensor_%d" %id
         self.detectRange = detectionRange
-        #rospy.init_node(self.moduleName, anonymous = True)
-        self.GPSReceiverName = "uav%d/mavros/state" %id
+        self.GPSReceiverName = "iris_%d/mavros/state" %id
         self.GPSReceiver = DroneGPSSubscriber(id)
         self.GPSReceiver.setSubscribe()
         GPSLoc = self.GPSReceiver.getGPS()
@@ -110,12 +108,12 @@ class FakeDroneSensor:
             if temp < self.detectRange:
                 val = val + (50/temp)
         if val > 0:
-            rospy.loginfo("FakeDroneSensor %d: detected val %f, printing list of fake event locations:" %(self.id, val))
+            print "FakeDroneSensor %d: detected val %f, printing list of fake event locations:" %(self.id, val)
             self.PrintFakeEventLocations()
         self.sensePub.publishGasData(val)
 
     # Prints out fake locations of events
     def PrintFakeEventLocations(self):
         for i in range(self.fakeEventNum):
-            rospy.loginfo("[%f][%f][%f]," %(self.fakeEventLocationsX[i], self.fakeEventLocationsY[i], self.fakeEventLocationsZ[i]))
+            print "[%f][%f][%f]," %(self.fakeEventLocationsX[i], self.fakeEventLocationsY[i], self.fakeEventLocationsZ[i])
 
