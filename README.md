@@ -17,10 +17,14 @@ _________________________________________________________________
      
 4. run drones
      - set up environment variables
-     ```source ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash ```
+     ```
+     source ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash
+     ```
      
      - spawns ROS nodes that send mavlink messages
-     ```rosrun drone DroneRun.py 2```
+     ```
+     rosrun drone DroneRun.py 2
+     ```
     
      - have nodes start communicating with gazebo simulator
      ```
@@ -31,10 +35,14 @@ _________________________________________________________________
 
 Modifying drones:
 - Everything in src is gazebo code
-```cd ~/src/Firmware/posix-configs/SITL/init/ekf2```
+```
+cd ~/src/Firmware/posix-configs/SITL/init/ekf2
+```
 
 - Create new drone
-```cp iris_2 iris_3```
+```
+cp iris_2 iris_3
+```
 
 - Change the following params in iris_3:
 ```
@@ -48,7 +56,9 @@ https://dev.px4.io/en/simulation/multi-vehicle-simulation.html
 
 - Add new UAV to launch file and create new bindings for UDP ports
 edit ~/src/Firmware/launch/multi_uav_mavros_sitl.launch
-```cp -r navi_2 navi_3```
+```
+cp -r navi_2 navi_3
+```
 edit all files in ROS_Sim/rox_px4_multi/testnavi/src/navi_3
 change all references of 'uav2' to 'uav3', 'navi_2' -> 'navi_3'
 
