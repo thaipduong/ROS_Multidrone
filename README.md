@@ -4,17 +4,53 @@ _________________________________________________________________
 # PX4
 _________________________________________________________________
 1. run ubuntu_sim_ros_gazebo.sh from https://dev.px4.io/en/setup/dev_env_linux_ubuntu.html
-     - it will install all the tools (gazebo, mavros, px4 sitl)
-     - if ran into low graphics problem, login by press Ctrl + Alt + F1 and then
+     - it will install all the tools (gazebo, mavros, px4 sitl) and set up ROS
+     - if ran into low graphics problem, drop to the root shell by pressing Ctrl + Alt + F1 and then try:
        sudo update
-2. catkin_make the package 
+       - In my case, an older nvidia graphics card also caused issues, so reinstalling the drivers on Ubuntu VM could help.
+2. clone this repo to your machine and build packages
+     - after opening terminal, ensure ROS env variables are set up
      - if error please refer to (http://wiki.ros.org/ROS/Tutorials/catkin/CreatingPackage)
-      create package and copy over the source codes
-3. launch simulation (https://dev.px4.io/en/simulation/ros_interface.html)
-     - need both mavros and gazebo launched
-4. execute the code by running "source devel/setup.bash" then "rosrun navi navi"
-     - *modification of mavros source code needed*
+3. launch gazebo simulation (https://dev.px4.io/en/simulation/ros_interface.html)
+     - after opening terminal, ensure ROS env variables are set up
+     ```roslaunch px4 multi_uav_mavros_sitl.launch```
+     
+4. run drones
+     - set up environment variables
+     ```source ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash ```
+     
+     - spawns ROS nodes that send mavlink messages
+     ```rosrun drone DroneRun.py 2```
+    
+     - have nodes start communicating with gazebo simulator
+     ```
+     rosrun navi_1 navi_1
+     rosrun navi_2 navi_2
+     ...
+     ```
 
+Modifying drones:
+- Everything in src is gazebo code
+```cd ~/src/Firmware/posix-configs/SITL/init/ekf2```
+
+- Create new drone
+```cp iris_2 iris_3```
+
+- Change the following params in iris_3:
+```
+MAV_SYS_ID //increment by 1
+SITL_UDP_PORT //increment by 2
+mavlink start -x -u # //increment both of these lines by 2
+-m onboard -o # //increment by 2
+anything that starts with mavlink, inc by 2
+```
+https://dev.px4.io/en/simulation/multi-vehicle-simulation.html
+
+- Add new UAV to launch file and create new bindings for UDP ports
+edit ~/src/Firmware/launch/multi_uav_mavros_sitl.launch
+```cp -r navi_2 navi_3```
+edit all files in ROS_Sim/rox_px4_multi/testnavi/src/navi_3
+change all references of 'uav2' to 'uav3', 'navi_2' -> 'navi_3'
 
 # Ardupilot [Stopped developing due to lack of support on multi drones]
 _________________________________________________________________
