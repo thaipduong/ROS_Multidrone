@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 
+
 #check argument count
 if(@ARGV!=2){
   print "Error please include 2 arguments\n test.pl <number of drone> <starting port>\n";
@@ -17,6 +18,7 @@ if($ARGV[0]!~ /^[1-9][0-9]*$/ || $ARGV[1]!~ /^[1-9][0-9]*$/){
 #initialize 
 #my $fileNum = 1;
 my $portNum = $ARGV[1];
+my $directoryPath= $ENV{"HOME"} . '/src/Firmware/posix-configs/SITL/init/ekf2/';
 my $filePrefix= 'iris_';
 my $droneNum = 1;
 my $fileName;# = $filePrefix . 1;
@@ -103,7 +105,7 @@ mavlink boot_complete
 replay trystart";
 
 for my $i (1..$ARGV[0]){
-  $fileName = $filePrefix . ${droneNum};
+  $fileName = $directoryPath . $filePrefix . ${droneNum};
   open(FH, '>', $fileName) or die $!;
   print FH $str;
   close(FH);
@@ -193,7 +195,7 @@ replay trystart";
 }
 $portNum = $ARGV[1];
 $droneNum = 1;
-$fileName="multi_uav_mavros_sitl.launch";
+$fileName=$ENV{"HOME"} . "/src/Firmware/launch/multi_uav_mavros_sitl.launch";
 my $launchStr = "<launch>
 
     <!-- MAVROS posix SITL environment launch script -->
@@ -257,6 +259,7 @@ my $groupStr = "
         </include>
     </group>
 ";
+
 open(FH, '>', $fileName) or die $!;
 print FH $launchStr;
 for my $i (1..$ARGV[0]){
