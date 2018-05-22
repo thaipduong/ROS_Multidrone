@@ -196,7 +196,8 @@ replay trystart";
 $portNum = $ARGV[1];
 $droneNum = 1;
 $fileName=$ENV{"HOME"} . "/src/Firmware/launch/multi_uav_mavros_sitl.launch";
-my $launchStr = "<launch>
+my $launchStr = "<?xml version=\"1.0\"?>
+<launch>
 
     <!-- MAVROS posix SITL environment launch script -->
 
@@ -235,7 +236,7 @@ my $groupStr = "
         <arg name=\"rcS${droneNum}\" default=\"\$(find px4)/posix-configs/SITL/init/\$(arg est)/\$(arg vehicle)_${droneNum}\"/>
         <arg name=\"ID\" value=\"${droneNum}\"/>
 
-        <include file=\"\$(find px4)/launch/single_vehcile_spawn.launch\">
+        <include file=\"\$(find px4)/launch/single_vehicle_spawn.launch\">
             <arg name=\"x\" value=\"${\($droneNum-1)}\"/>
             <arg name=\"y\" value=\"0\"/>
             <arg name=\"z\" value=\"0\"/>
@@ -278,7 +279,7 @@ for my $i (1..$ARGV[0]){
         <arg name=\"rcS${droneNum}\" default=\"\$(find px4)/posix-configs/SITL/init/\$(arg est)/\$(arg vehicle)_${droneNum}\"/>
         <arg name=\"ID\" value=\"${droneNum}\"/>
 
-        <include file=\"\$(find px4)/launch/single_vehcile_spawn.launch\">
+        <include file=\"\$(find px4)/launch/single_vehicle_spawn.launch\">
             <arg name=\"x\" value=\"${\($droneNum-1)}\"/>
             <arg name=\"y\" value=\"0\"/>
             <arg name=\"z\" value=\"0\"/>
