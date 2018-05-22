@@ -33,7 +33,7 @@ class TestGPSPublisher:
 class TestObjSubscriber:
     def __init__(self, id):
         self.id = id
-        self.moduleName = "FakeDroneObj_%d" %id
+        self.moduleName = "uav%d/Obj" %id
         self.xObj = -1000
         self.yObj = -1000
         self.zObj = -1000

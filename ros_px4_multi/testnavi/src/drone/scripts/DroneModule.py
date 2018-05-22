@@ -537,7 +537,7 @@ class DroneGPSSubscriber:
 class DroneWaypointPublisher:
     def __init__(self, id):
         self.id = id
-        self.WaypointPublisherName = "FakeDroneObj_%d" %id                                                  # TODO Michael: Set your script to listen to this objective publisher
+        self.WaypointPublisherName = "uav%d/Obj" %id                                                  # TODO Michael: Set your script to listen to this objective publisher
         self.longitude = 1000
         self.latitude = 1000
         self.altitude = 1000        #topic below
@@ -587,7 +587,7 @@ class DroneDataCollection:
         self.id = id
         self.GPSReceiverName = "iris_%d/mavros/state" %id
         self.GPSReceiver = DroneGPSSubscriber(id)
-        self.WaypointPublisherName = "FakeDroneObj_%d" %id
+        self.WaypointPublisherName = "uav%d/Obj" %id
         self.WaypointPublisher = DroneWaypointPublisher(id)
         self.SensorReceiverName = "FakeDroneSensor_%d" %id
         self.SensorReceiver = DroneSensorSubscriber(id)
