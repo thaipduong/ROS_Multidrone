@@ -25,7 +25,7 @@ _________________________________________________________________
      ```
      generate_model.pl <number of drone> <starting port>
      ```
-     staring position of the drones can be changed in the launch file
+     - starting position of the drones can be changed in the launch file
      ```
      /src/Firmware/launch/multi_uav_mavros_sitl.launch
      ```
@@ -43,6 +43,7 @@ _________________________________________________________________
      
 Modifying drones are taken care of by the new script and code
 the following are for reference only.
+
 Modifying drones:
 - Everything in src is gazebo code
 ```
