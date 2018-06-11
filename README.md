@@ -21,18 +21,28 @@ _________________________________________________________________
      source ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash
      ```
      
+     - spawn model file and modify launch file
+     ```
+     generate_model.pl <number of drone> <starting port>
+     ```
+     staring position of the drones can be changed in the launch file
+     ```
+     /src/Firmware/launch/multi_uav_mavros_sitl.launch
+     ```
+     
      - spawns ROS nodes that send mavlink messages
      ```
-     rosrun drone DroneRun.py 2
+     rosrun drone DroneRun.py <drone count>
      ```
     
      - have nodes start communicating with gazebo simulator
      ```
-     rosrun navi_1 navi_1
-     rosrun navi_2 navi_2
+     rosrun navi <drone count>
      ...
      ```
-
+     
+Modifying drones are taken care of by the new script and code
+the following are for reference only.
 Modifying drones:
 - Everything in src is gazebo code
 ```
