@@ -2,6 +2,8 @@
 use strict;
 use warnings;
 
+#make sure gazebo files are installed
+#in home:~/src/...
 
 #check argument count
 if(@ARGV!=2){
@@ -103,7 +105,7 @@ mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u ${\($portNum+1)}
 logger start -e -t
 mavlink boot_complete
 replay trystart";
-
+#create model files
 for my $i (1..$ARGV[0]){
   $fileName = $directoryPath . $filePrefix . ${droneNum};
   open(FH, '>', $fileName) or die $!;
@@ -263,6 +265,7 @@ my $groupStr = "
 
 open(FH, '>', $fileName) or die $!;
 print FH $launchStr;
+#modify launch file
 for my $i (1..$ARGV[0]){
   #$fileName = $filePrefix . $i;
   
