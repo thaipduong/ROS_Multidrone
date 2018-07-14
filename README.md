@@ -1,8 +1,14 @@
 # ROS_Sim-Ubuntu 16.04 Xenial
+This is a ROS simulation framework for use in developing drone swarm applications. It is capable of generating multiple copies of drone models, which can be controlled separately and visualized flying in Gazebo. Below are instructions for setting this up as well as running the modules.
 _________________________________________________________________
 
 # PX4
-_________________________________________________________________
+Always ensure terminal has ROS env variables set up when working with ROS commands!
+```
+source ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash
+```
+
+First time setup:
 1. run ubuntu_sim_ros_gazebo.sh from https://dev.px4.io/en/setup/dev_env_linux_ubuntu.html
      - it will install all the tools (gazebo, mavros, px4 sitl) and set up ROS
      - if ran into low graphics problem, drop to the root shell by pressing Ctrl + Alt + F1 and then try:
@@ -11,11 +17,16 @@ _________________________________________________________________
 2. clone this repo to your machine and build packages
      - after opening terminal, ensure ROS env variables are set up
      - if error please refer to (http://wiki.ros.org/ROS/Tutorials/catkin/CreatingPackage)
-3. launch gazebo simulation (https://dev.px4.io/en/simulation/ros_interface.html)
-     - after opening terminal, ensure ROS env variables are set up
+     
+Running simulation:
+1. launch gazebo simulation (https://dev.px4.io/en/simulation/ros_interface.html)
+     - after opening terminal, ensure ROS env variables are set up. this includes some under px4 repo, included in the above link and scripts/start_gazebo.sh
+     - 
      ```roslaunch px4 multi_uav_mavros_sitl.launch```
      
-4. run drones
+     - just made a script at scripts/start_gazebo.sh which will set up ROS env variables, set up px4 env variables for ROS, and start gazebo cleanly. Tested on Ubuntu 16.04
+     
+2. run drones
      - set up environment variables
      ```
      source ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash
@@ -73,7 +84,7 @@ cp -r navi_2 navi_3
 edit all files in ROS_Sim/rox_px4_multi/testnavi/src/navi_3
 change all references of 'uav2' to 'uav3', 'navi_2' -> 'navi_3'
 
-# Ardupilot [Stopped developing due to lack of support on multi drones]
+# Ardupilot [Deprecated due to lack of support on multi drones]
 _________________________________________________________________
 Temp Environment setup (no gazebo but can do testing via SITL)
 
@@ -108,5 +119,3 @@ Services
 1. mavros/cmd/arming - arm the drone
 2. mavros/set_mode - set the current flight mode
 ______________________________________________________________________________
-# UPDATE
- multi drone control code working, need work on target determine code
