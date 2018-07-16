@@ -54,10 +54,9 @@ Running simulation:
      - have nodes start communicating with gazebo simulator
      ```
      rosrun navi <drone count>
-     ...
      ```
      
-Modifying drones are taken care of by the new script and code
+Modifying drones are taken care of by the new script and code.
 the following are for reference only.
 
 Modifying drones:
