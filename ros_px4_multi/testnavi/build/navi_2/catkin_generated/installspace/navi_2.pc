@@ -1,8 +1,0 @@
-prefix=/home/mvp/Desktop/testnavi/install
-
-Name: navi_2
-Description: Description of navi_2
-Version: 0.0.0
-Cflags: 
-Libs: -L/home/mvp/Desktop/testnavi/install/lib 
-Requires: 
