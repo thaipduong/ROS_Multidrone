@@ -21,8 +21,12 @@ First time setup:
 Running simulation:
 1. launch gazebo simulation (https://dev.px4.io/en/simulation/ros_interface.html)
      - after opening terminal, ensure ROS env variables are set up. this includes some under px4 repo, included in the above link and scripts/start_gazebo.sh
-     - 
-     ```roslaunch px4 multi_uav_mavros_sitl.launch```
+     - source the environment (make sure you are in the correct directory)
+     ```
+     source Tools/setup_gazebo.bash $(pwd) $(pwd)/build/posix_sitl_default
+     export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd):$(pwd)/Tools/sitl_gazebo
+     ```
+     - ```roslaunch px4 multi_uav_mavros_sitl.launch```
      
      - just made a script at scripts/start_gazebo.sh which will set up ROS env variables, set up px4 env variables for ROS, and start gazebo cleanly. Tested on Ubuntu 16.04
      
