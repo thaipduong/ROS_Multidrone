@@ -21,7 +21,21 @@ First time setup:
 Running simulation:
 1. launch gazebo simulation (https://dev.px4.io/en/simulation/ros_interface.html)
      - after opening terminal, ensure ROS env variables are set up. this includes some under px4 repo, included in the above link and scripts/start_gazebo.sh
-     - 
+     
+     - spawn model file and modify launch file
+     ```
+     generate_model.pl <number of drone> <starting port>
+     ```
+     - starting position of the drones can be changed in the launch file
+     ```
+     /src/Firmware/launch/multi_uav_mavros_sitl.launch
+     ```
+     - source the environment (make sure you are in the correct directory)
+     ```
+     source Tools/setup_gazebo.bash $(pwd) $(pwd)/build/posix_sitl_default
+     export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd):$(pwd)/Tools/sitl_gazebo
+     ```
+     - launch the simulation
      ```roslaunch px4 multi_uav_mavros_sitl.launch```
      
      - just made a script at scripts/start_gazebo.sh which will set up ROS env variables, set up px4 env variables for ROS, and start gazebo cleanly. Tested on Ubuntu 16.04
@@ -32,15 +46,6 @@ Running simulation:
      source ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash
      ```
      
-     - spawn model file and modify launch file
-     ```
-     generate_model.pl <number of drone> <starting port>
-     ```
-     - starting position of the drones can be changed in the launch file
-     ```
-     /src/Firmware/launch/multi_uav_mavros_sitl.launch
-     ```
-     
      - spawns ROS nodes that send mavlink messages
      ```
      rosrun drone DroneRun.py <drone count>
@@ -49,10 +54,9 @@ Running simulation:
      - have nodes start communicating with gazebo simulator
      ```
      rosrun navi <drone count>
-     ...
      ```
      
-Modifying drones are taken care of by the new script and code
+Modifying drones are taken care of by the new script and code.
 the following are for reference only.
 
 Modifying drones:
