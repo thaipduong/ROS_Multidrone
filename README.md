@@ -15,14 +15,13 @@ First time setup:
        sudo update
        - In my case, an older nvidia graphics card also caused issues, so reinstalling the drivers on Ubuntu VM could help.
 2. Clone this repo to your machine and build packages
-     - After opening terminal, ensure ROS env variables are set up
-     - If error please refer to (http://wiki.ros.org/ROS/Tutorials/catkin/CreatingPackage)
-     - Need to remove line INCLUDE_DIRS include in ros_px4_multi/testnavi/src/drone/CMakeLists.txt for it to build testnavi properly
+     - Open terminal, but DO NOT SOURCE devel/setup.bash
      ```
      cd ROS_Sim/ros_px4_multi/testnavi
      catkin_make
      ```
-     
+     - If error please refer to (http://wiki.ros.org/ROS/Tutorials/catkin/CreatingPackage)
+
 Running simulation:
 
 Generate the appropriate number of drone models for use in the simulation and then start the simulation using bash script.
