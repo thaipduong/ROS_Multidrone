@@ -16,8 +16,13 @@ First time setup:
      chmod +x ubuntu_sim_ros_gazebo.sh
      ./ubuntu_sim_ros_gazebo.sh
      ```
-2. Clone this repo to your machine and build packages
+2. Clone this repo to your machine
+     ```
+     git clone https://github.com/UCSD-SEELab/ROS_Sim.git
+     ```
+3. Build packages
      - Open terminal, but DO NOT SOURCE devel/setup.bash if it already exists!
+     - Rebuilding packages is necessary any time the source is changed.
      ```
      cd ROS_Sim/ros_px4_multi/testnavi
      catkin_make
