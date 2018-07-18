@@ -93,7 +93,7 @@ class Drone:
         self.DataCollect.UpdateObjective(self.xObjective, self.yObjective, self.zObjective)
         obj = DroneMeasurement(self.xObjective, self.yObjective, self.zObjective, 0, 0)
         [x,y,z] = self.Maps.GetCoordinateIndices(obj)
-        print "Drone %d: Setting start objective (%f|%f|%f) = (%d|%d|%d)" %(self.id, self.yObjective, self.xObjective, self.zObjective,x,y,z)
+        print "[drone] [%d]: Setting start objective (%f|%f|%f) = (%d|%d|%d)" %(self.id, self.yObjective, self.xObjective, self.zObjective,x,y,z)
         self.CommModule = DroneCommModule(id,resolutions)
         self.CommModule.SetMaps(self.Maps)
 
@@ -109,13 +109,13 @@ class Drone:
         obj = DroneMeasurement(self.xObjective, self.yObjective, self.zObjective, 0, 0)
         [xObj,yObj,zObj] = self.Maps.GetCoordinateIndices( obj )
         if (xOld == self.x) and (yOld == self.y) and (zOld == self.z):
-            print "Drone %d: COORDINATES DID NOT CHANGE: GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
+            print "[drone] [%d]: COORDINATES DID NOT CHANGE: GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
         else:
             # Print current location, exploration status, and objective
             if self.isExploring is True:
-                print "Drone %d: Exploring, GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
+                print "[drone] [%d]: Exploring, GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
             else:
-                print "Drone %d: NOT Exploring, GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
+                print "[drone] [%d]: NOT Exploring, GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
 
     # Calculates distance to objective (in meters based on GPS coordinates)
     def DistanceToObjective(self):
@@ -140,7 +140,7 @@ class Drone:
 
     def UpdateMapsForDataTx(self):
         if self.CommModule.GetGridTxReceivedStatus() == 1:
-            print "Drone %d: Received new data, updating maps, resetting status" %(self.id)
+            print "[drone] [%d]: Received new data, updating maps, resetting status" %(self.id)
             maps = self.Maps.CombineReceivedMaps(self.CommModule)
             self.Maps = maps
             self.CommModule.Maps = maps
@@ -173,7 +173,7 @@ class Drone:
         #If drone is outside search range
         if self.IsWithinSearchArea() == 0:
             self.DataCollect.publishWaypoint()
-            print "Drone %d is not in exploration area [X:(%f|%f)/Y:(%f|%f)/Z:(%f|%f)] - current location is (%f|%f|%f)" %(self.id, self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax, self.x, self.y, self.z)
+            print "[drone] [%d]: not in exploration area [X:(%f|%f)/Y:(%f|%f)/Z:(%f|%f)] - current location is (%f|%f|%f)" %(self.id, self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax, self.x, self.y, self.z)
             return
             
         #currMeasurement = self.DataCollect.GetNewMeasurement()
@@ -182,7 +182,7 @@ class Drone:
         dist = self.DistanceToObjective()
         withinProx = (dist < self.proximityReq)
         if withinProx:
-            print "Drone %d is within proximity %dm to target: distance to objective is (%f)" %(self.id, self.proximityReq, dist)
+            print "[drone] [%d]: within proximity %dm to target: distance to objective is (%f)" %(self.id, self.proximityReq, dist)
             if self.isExploring == True:
                 currValMap = self.Maps.GetCurrentValueMapDist(self.t);
                 if numpy.any(currValMap > 0):
@@ -193,7 +193,7 @@ class Drone:
                     obj = DroneMeasurement(self.xObjective, self.yObjective, self.zObjective, 0, 0)
                     [x,y,z] = self.Maps.GetCoordinateIndices( obj )
                     self.isExploring = False;
-                    print "Drone %d reached target. Not exploring mode: moving to previously found event, new objective at (%f|%f|%f)=(%d|%d|%d)" %(self.id, self.xObjective, self.yObjective, self.zObjective, x, y, z)
+                    print "[drone] [%d]: reached target. Not exploring mode: moving to previously found event, new objective at (%f|%f|%f)=(%d|%d|%d)" %(self.id, self.xObjective, self.yObjective, self.zObjective, x, y, z)
                     self.DataCollect.UpdateObjective(self.xObjective, self.yObjective, self.zObjective)
                 else:
                     (leastExploredX, leastExploredY, leastExploredZ) = self.Maps.GetCurrentLeastExplored(self.t)
@@ -202,7 +202,7 @@ class Drone:
                     self.zObjective = leastExploredZ*self.zResolutionSize+self.bounds['zMin']
                     obj = DroneMeasurement(self.xObjective, self.yObjective, self.zObjective, 0, 0)
                     [x,y,z] = self.Maps.GetCoordinateIndices( obj )
-                    print "Drone %d reached target. No event found yet, exploring mode: moving to least explored, new objective at (%f|%f|%f)=(%d|%d|%d)" %(self.id, self.xObjective, self.yObjective, self.zObjective, x, y, z)
+                    print "[drone] [%d]: reached target. No event found yet, exploring mode: moving to least explored, new objective at (%f|%f|%f)=(%d|%d|%d)" %(self.id, self.xObjective, self.yObjective, self.zObjective, x, y, z)
                     self.DataCollect.UpdateObjective(self.xObjective, self.yObjective, self.zObjective)
             else:
                 (leastExploredX, leastExploredY, leastExploredZ) = self.Maps.GetCurrentLeastExplored(self.t)
@@ -212,7 +212,7 @@ class Drone:
                 obj = DroneMeasurement(self.xObjective, self.yObjective, self.zObjective, 0, 0)
                 [x,y,z] = self.Maps.GetCoordinateIndices( obj )
                 self.isExploring = True
-                print "Drone %d reached target. Exploring mode: moving to least explored, new objective at (%f|%f|%f)=(%d|%d|%d)" %(self.id, self.xObjective, self.yObjective, self.zObjective, x, y, z)
+                print "[drone] [%d]: reached target. Exploring mode: moving to least explored, new objective at (%f|%f|%f)=(%d|%d|%d)" %(self.id, self.xObjective, self.yObjective, self.zObjective, x, y, z)
                 self.DataCollect.UpdateObjective(self.xObjective, self.yObjective, self.zObjective)
         #else:
             #print "Drone %d NOT within proximity %dm to target: distance to objective is (%f)" %(self.id, self.proximityReq, dist)
@@ -257,12 +257,12 @@ class DroneCommModule:
         if self.TxInProgress == 1:
             self.GridTxSub.setTxSender(self.DronePartnerID)
             self.GridTxPub.setTxReceiver(self.DronePartnerID)
-            print "Drone %d received proximity alert: drones %d + %d in communication range" %(self.id, self.id, self.DronePartnerID)
+            print "[drone] [%d]: received proximity alert: drones %d + %d in communication range" %(self.id, self.id, self.DronePartnerID)
 
     def DataTx(self):
         self.GridTxSub.setSubscribe()
         if self.TxInProgress == 1:
-            print "Drone %d: sending data tx to %d" %(self.id, self.DronePartnerID)
+            print "[drone] [%d]: sending data tx to %d" %(self.id, self.DronePartnerID)
             self.GridTxPub.publishGrids(self.Maps)
             #while not self.GridTxSub.sender == -1:
             #    print "Drone %d has not received data from partner drone %d, waiting 1s" %(self.id, self.DronePartnerID)
@@ -329,7 +329,7 @@ class DroneGridTxSubscriber:
             self.sub = rospy.Subscriber("GridTx", GridData, self.TxReceive)
     def TxReceive(self,msg):
         if (msg.target == self.id) and (msg.sender == self.sender):
-            print "Drone %d Sub: Tx received from %d, resetting sender" %(self.id, self.sender)
+            print "[drone] [%d] Sub: Tx received from %d, resetting sender" %(self.id, self.sender)
 
             dstride0 = msg.VMD.layout.dim[0].stride
             dstride1 = msg.VMD.layout.dim[1].stride
@@ -349,9 +349,9 @@ class DroneGridTxSubscriber:
     def setTxSender(self, sender):
         if self.sender == -1:
             self.sender = sender
-            print "Drone %d Sub: Setting tx sender to: %d" %(self.id, self.sender)
+            print "[drone] [%d] Sub: Setting tx sender to: %d" %(self.id, self.sender)
         else:
-            print "Drone %d Sub: Already has tx sender %d, %d rejected" %(self.id, self.sender, sender)
+            print "[drone] [%d] Sub: Already has tx sender %d, %d rejected" %(self.id, self.sender, sender)
 
     def CompleteTx(self):
         self.received = 0
@@ -373,9 +373,9 @@ class DroneGridTxPublisher:
     def setTxReceiver(self, receiver):
         if self.receiver == -1:
             self.receiver = receiver
-            print "Drone %d Pub: Setting tx receiver to: %d" %(self.id, self.receiver)
+            print "[drone] [%d] Pub: Setting tx receiver to: %d" %(self.id, self.receiver)
         else:
-            print "Drone %d Pub: Already has tx receiver %d, %d rejected" %(self.id, self.receiver, receiver)
+            print "[drone] [%d] Pub: Already has tx receiver %d, %d rejected" %(self.id, self.receiver, receiver)
 
     def publishGrids(self, maps):
         msg = GridData()
@@ -503,11 +503,11 @@ class DroneCommSubscriber:
         elif d2 == self.id:
             self.dronePartner = d1
             self.status = 1
-        print "Drone %d: pair (%d/%d) in communication range!" %(self.id, d1, d2)
+        print "[drone] [%d]: pair (%d/%d) in communication range!" %(self.id, d1, d2)
     def resetStatus(self):
         self.status = 0
         self.dronePartner = -1
-        print "Drone %d: Resetting communication status"%(self.id)
+        print "[drone] [%d]: Resetting communication status"%(self.id)
     def getStatus(self):
         return (self.status,self.dronePartner)
 

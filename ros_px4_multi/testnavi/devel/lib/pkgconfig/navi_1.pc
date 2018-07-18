@@ -1,8 +1,0 @@
-prefix=/home/mvp/Desktop/testnavi/devel
-
-Name: navi_1
-Description: Description of navi_1
-Version: 0.0.0
-Cflags: 
-Libs: -L/home/mvp/Desktop/testnavi/devel/lib 
-Requires: 

@@ -82,16 +82,16 @@ class CommRangeDetector:
                 t1 = self.droneGPSTriples[i+1]
                 t2 = self.droneGPSTriples[j+i+1+1]
                 dist = Distance(t1,t2)
-                print "CommRangeDetector: dist between %d/%d is %f" %(i+1, j+i+1+1,dist)
+                print "[comm] [range]: dist between %d/%d is %f" %(i+1, j+i+1+1,dist)
                 if (dist < self.commRange):
                     self.TxPairs.append((i+1,j+i+1+1))
                     self.commPublisher.publishDronePair(i+1,j+i+1+1)
-                    print "CommRangeDetector: Publishing drone pair %d/%d" %(i+1, j+i+1+1)
+                    print "[comm] [range]: Publishing drone pair %d/%d" %(i+1, j+i+1+1)
 
     def CheckTxCorrect(self, drones):
-        print "CommModule: Confirming data TX is correct"
+        print "[comm]: Confirming data TX is correct"
         if len(self.TxPairs) == 0:
-            print "CommModule: No Tx are expected, nothing to confirm"
+            print "[comm]: No Tx are expected, nothing to confirm"
             return
         i = 0
         n = len(self.TxPairs)
@@ -99,13 +99,13 @@ class CommRangeDetector:
             (ind1,ind2) = self.TxPairs[i]
             d1 = drones[ind1]
             d2 = drones[ind2]
-            print "CommModule: Communication pair status: (id %d = %d) | (id %d = %d)" %(ind1, d1.GetTxStatus(), ind2, d2.GetTxStatus())
+            print "[comm]: Communication pair status: (id %d = %d) | (id %d = %d)" %(ind1, d1.GetTxStatus(), ind2, d2.GetTxStatus())
             if (not d1.GetTxStatus()) and (not d2.GetTxStatus()):
-                print "CommModule: Expected comm pair %d/%d report no TX in progress, checking if maps correct:" %(d1.GetID(),d2.GetID())
+                print "[comm]: Expected comm pair %d/%d report no TX in progress, checking if maps correct:" %(d1.GetID(),d2.GetID())
                 if(d1.CheckIfMapsSame(d2)):
-                    print "CommModule: drones %d/%d maps are identical, TX success" %(d1.GetID(),d2.GetID())
+                    print "[comm]: drones %d/%d maps are identical, TX success" %(d1.GetID(),d2.GetID())
                 else:
-                    print "CommModule: drones %d/%d maps are not identical, TX FAILURE************************" %(d1.GetID(),d2.GetID())
+                    print "[comm]: drones %d/%d maps are not identical, TX FAILURE************************" %(d1.GetID(),d2.GetID())
                 del self.TxPairs[i]
                 n = n - 1
                 i = i - 1

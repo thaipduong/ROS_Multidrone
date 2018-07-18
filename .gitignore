@@ -1,0 +1,4 @@
+*.pyc
+*.pyo
+*.swp
+ros_px4_multi/testnavi/devel/*
