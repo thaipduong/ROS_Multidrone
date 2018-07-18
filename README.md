@@ -119,7 +119,7 @@ cp -r navi_2 navi_3
 Edit all files in ROS_Sim/rox_px4_multi/testnavi/src/navi_3
 Change all references of 'uav2' to 'uav3', 'navi_2' -> 'navi_3'
 
-# Ardupilot [Deprecated due to lack of support on multi drones]
+# Ardupilot [Legacy branch - Deprecated due to lack of support on multi drones]
 _________________________________________________________________
 Temp Environment setup (no gazebo but can do testing via SITL)
 

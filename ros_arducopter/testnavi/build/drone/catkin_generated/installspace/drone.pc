@@ -1,8 +1,0 @@
-prefix=/home/hello/testnavi/install
-
-Name: drone
-Description: Description of drone
-Version: 0.0.0
-Cflags: -I/home/hello/testnavi/install/include
-Libs: -L/home/hello/testnavi/install/lib -ldrone
-Requires: roscpp rospy std_msgs

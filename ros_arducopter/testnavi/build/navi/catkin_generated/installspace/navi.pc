@@ -1,8 +1,0 @@
-prefix=/home/hello/testnavi/install
-
-Name: navi
-Description: Description of navi
-Version: 0.0.0
-Cflags: 
-Libs: -L/home/hello/testnavi/install/lib 
-Requires: 
