@@ -3,7 +3,7 @@ This is a ROS simulation framework for use in developing drone swarm application
 _________________________________________________________________
 
 # ROS PX4 Multi-Drone Simulation
-Always ensure terminal has ROS env variables set up when working with ROS commands!
+After building packages, always ensure terminal has env variables set up so ROS can find this package!
 ```
 source ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash
 ```
@@ -34,7 +34,7 @@ Generate the appropriate number of drone models for use in the simulation and th
 cd ROS_Sim/scripts
 ./generate_model.pl <number of drone> <starting port>
 chmod +x start_sim.sh
-./start_sim.sh [num_drones]
+./launch_sim.sh [num_drones]
 ```
 More about these scripts can be found under scripts/README.md
 

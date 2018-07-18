@@ -4,8 +4,21 @@ export NUM_DRONES=$1
 
 if [ -z "$FIRMWARE_DIR" ];
 then
-	echo "usage: ./start_sim.sh [NUM_DRONES]"
+	echo "No PX4 firmware directory specified"
+	echo "usage: ./launch_sim.sh [NUM_DRONES]"
 	exit 1
+fi
+
+if [ -z "$ROS_SIM_DIR" ];
+then
+	echo "No ROS_Sim base dir specified"
+	echo "usage: ./launch_sim.sh [NUM_DRONES]"
+fi
+
+if [ -z "$NUM_DRONES" ];
+then
+	echo "No number of drones specified"
+	echo "usage: ./launch_sim.sh [NUM_DRONES]"
 fi
 
 echo "Num drones: ${NUM_DRONES}"

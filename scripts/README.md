@@ -1,7 +1,7 @@
 What these scripts do:
-start_sim.sh takes in number of drones as cmdline parameter and start the individual components of the simulation (launch gazebo, start ros nodes, and have drones communicate between ROS and Gazebo).
+launch_sim.sh takes in number of drones as cmdline parameter and start the individual components of the simulation (launch gazebo, start ros nodes, and have drones communicate between ROS and Gazebo).
 
-start_sim.sh delegates to individual scripts for starting gazebo (start_gazebo.sh) and running the drones separately (start_ros_nodes.sh and start_drones.sh).
+launch_sim.sh delegates to individual scripts for starting gazebo (start_gazebo.sh) and running the drones separately (start_ros_nodes.sh and start_drones.sh).
 1. Launch gazebo simulation (https://dev.px4.io/en/simulation/ros_interface.html)
      - Associated script under ROS_Sim/scripts, run with ./start_gazebo.sh [firmware_location]
      
@@ -31,7 +31,7 @@ start_sim.sh delegates to individual scripts for starting gazebo (start_gazebo.s
      ```
      
      These scripts do the following:
-     - Set up environment variables
+     - Set up environment variables so ROS can find this repo's packages
      ```
      source ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash
      ```
@@ -42,7 +42,7 @@ start_sim.sh delegates to individual scripts for starting gazebo (start_gazebo.s
      rosrun drone DroneRun.py <drone count>
      ```
     
-     - In a different terminal, set up env variables
+     - In a different terminal, set up env variables so ROS can find this repo's packages
      ```
      source ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash
      ```
