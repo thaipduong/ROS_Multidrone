@@ -109,13 +109,13 @@ class Drone:
         obj = DroneMeasurement(self.xObjective, self.yObjective, self.zObjective, 0, 0)
         [xObj,yObj,zObj] = self.Maps.GetCoordinateIndices( obj )
         if (xOld == self.x) and (yOld == self.y) and (zOld == self.z):
-            print "[drone] [%d]: COORDINATES DID NOT CHANGE: GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
+            print "[drone] [%d] [gps]: NO MOVEMENT" %(self.id)
         else:
             # Print current location, exploration status, and objective
             if self.isExploring is True:
-                print "[drone] [%d]: Exploring, GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
+                print "[drone] [%d]: Exploring" %(self.id)
             else:
-                print "[drone] [%d]: NOT Exploring, GPS:(%f|%f|%f)=(%d, %d, %d), Obj:(%f|%f|%f)=(%d, %d, %d)" %(self.id, self.x, self.y,  self.z, x, y, z, self.xObjective, self.yObjective, self.zObjective, xObj, yObj, zObj)
+                print "[drone] [%d]: NOT Exploring" %(self.id)
 
     # Calculates distance to objective (in meters based on GPS coordinates)
     def DistanceToObjective(self):
@@ -173,7 +173,16 @@ class Drone:
         #If drone is outside search range
         if self.IsWithinSearchArea() == 0:
             self.DataCollect.publishWaypoint()
-            print "[drone] [%d]: not in exploration area [X:(%f|%f)/Y:(%f|%f)/Z:(%f|%f)] - current location is (%f|%f|%f)" %(self.id, self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax, self.x, self.y, self.z)
+            #print "[drone] [%d]: not in exploration area" %(self.id)
+            
+            if self.x < self.xMin or self.x > self.xMax:
+              print "[drone] [%d]: X out of exploration area [%.4f %.4f] %.5f" %(self.id, self.xMin, self.xMax, self.x)
+
+            if self.y < self.yMin or self.y > self.yMax:
+              print "[drone] [%d]: Y out of exploration area [%.4f %.4f] %.5f" %(self.id, self.yMin, self.yMax, self.y)
+            
+            if self.z < self.zMin or self.z > self.zMax:
+              print "[drone] [%d]: Z out of exploration area [%.4f %.4f] %.5f" %(self.id, self.yMin, self.yMax, self.y)
             return
             
         #currMeasurement = self.DataCollect.GetNewMeasurement()
@@ -497,13 +506,14 @@ class DroneCommSubscriber:
     def receive(self,msg):
         d1 = msg.d1
         d2 = msg.d2
+        bw = msg.bw
         if d1 == self.id:
             self.dronePartner = d2
             self.status = 1
         elif d2 == self.id:
             self.dronePartner = d1
             self.status = 1
-        print "[drone] [%d]: pair (%d/%d) in communication range!" %(self.id, d1, d2)
+        print "[drone] [%d]: ack connection between [%d %d] bw: [%f]" %(self.id, d1, d2, bw)
     def resetStatus(self):
         self.status = 0
         self.dronePartner = -1

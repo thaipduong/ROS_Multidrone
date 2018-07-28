@@ -52,10 +52,13 @@ class DroneCommPublisher:
     def __init__(self):
         self.pub = rospy.Publisher("CommDetection", DroneComm, queue_size=10)
 
-    def publishDronePair(self, d1, d2):
+    def publishDronePair(self, d1, d2, dist):
         msg = DroneComm()
         msg.d1 = d1
         msg.d2 = d2
+
+        #TODO make bw a function of dist
+        msg.bw = dist
         #print "Drone Comm Range Detector publishing a drone pair: (%d|%d)" %(d1, d2)
         self.pub.publish(msg)
 
@@ -82,10 +85,10 @@ class CommRangeDetector:
                 t1 = self.droneGPSTriples[i+1]
                 t2 = self.droneGPSTriples[j+i+1+1]
                 dist = Distance(t1,t2)
-                print "[comm] [range]: dist between %d/%d is %f" %(i+1, j+i+1+1,dist)
+                print "[comm] [range]: dist between [%d %d] is %f" %(i+1, j+i+1+1,dist)
                 if (dist < self.commRange):
                     self.TxPairs.append((i+1,j+i+1+1))
-                    self.commPublisher.publishDronePair(i+1,j+i+1+1)
+                    self.commPublisher.publishDronePair(i+1,j+i+1+1, dist)
                     print "[comm] [range]: Publishing drone pair %d/%d" %(i+1, j+i+1+1)
 
     def CheckTxCorrect(self, drones):

@@ -1,5 +1,16 @@
 #!/usr/bin/env python
 
+'''*-----------------------------------------------------------------------*---
+                                                         Author: Jason Ma
+                                                                 David ?
+                                                         Date  : Jul 27 2018
+                              ROS Multi-drone Sim
+
+  File Name  : DroneRun.py
+  Description: This script sets up all the ROS modules associated with running
+               the drone. 
+---*-----------------------------------------------------------------------*'''
+
 PKG = 'drone'
 
 import roslib; roslib.load_manifest(PKG)
@@ -15,6 +26,13 @@ import FakeDroneSensor;
 import FakeDroneGPS;
 import CommRangeDetector;
 
+'''[GLOBAL VARS]------------------------------------------------------------'''
+COMM_DROPOFF = 25
+
+'''[main]----------------------------------------------------------------------
+  Drives program, initializes all modules and drones as well as their ROS
+  counterparts.
+----------------------------------------------------------------------------'''
 if __name__ == "__main__":
   rospy.init_node("dronetest", anonymous = True)
 
@@ -22,8 +40,8 @@ if __name__ == "__main__":
   # Desired grid resolution, number of drones, and communication radius (drone-to-drone range)
   resolutions = {'x':40,'y':40,'z':40}
 
-  xRange = {'min':47.3977, 'max':47.40}
-  yRange = {'max':8.55, 'min':8.545}
+  xRange = {'min':47.3975, 'max':47.3980}
+  yRange = {'max':8.5455, 'min':8.545}
   zRange = {'max':590, 'min':550}
 
   xStart = {}
@@ -53,7 +71,7 @@ if __name__ == "__main__":
     print "[main] FakeGasSensorModule w/ id=%d created" %numDrones
   print "[main] gasSensorModule created"
 
-  commDetector = CommRangeDetector.CommRangeDetector(2,5)
+  commDetector = CommRangeDetector.CommRangeDetector(2, COMM_DROPOFF)
   print "[main] commDetection created"
 
   drones = {}
@@ -69,22 +87,43 @@ if __name__ == "__main__":
 
   loop = 1
   while not rospy.is_shutdown():
+
+    #TODO find way to parallelize the drones better
+    
+    '''
+    for i in range(1, numDrones + 1):
+      drones[i].PublishObj()
+      gasSensors[i].PublishGasSensorValue()
+    '''
+
+    #publish objectives and air quality samples
     for i in range(1,numDrones+1):
       drones[i].PublishObj()
       gasSensors[i].PublishGasSensorValue()
+    
     commDetector.ProcessDroneSetGPS()
     time.sleep(0.25)
+    
+    #update maps and check for inter-drone comms
     for i in range(1,numDrones+1):
       drones[i].UpdateMaps()
       drones[i].CheckForTx()
+    
     time.sleep(0.25)
+
+    #send inter-drone comms
     for i in range(1,numDrones+1):
       drones[i].SendDataTx()
+    
     time.sleep(0.5)
+
     for i in range(1,numDrones+1):
       drones[i].UpdateMapsForDataTx()
+
     time.sleep(0.25)
+
     commDetector.CheckTxCorrect(drones)
+    
     print "[main] [%d] Iteration complete ----------" %(loop)
     loop = loop + 1
   
