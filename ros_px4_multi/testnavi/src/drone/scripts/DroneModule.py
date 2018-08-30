@@ -32,11 +32,6 @@ class Drone:
         self.t = 0
 
         self.DataCollect = DroneDataCollection(id)
-        startGPS = self.DataCollect.GetGPS()
-
-        self.x = startGPS['x']
-        self.y = startGPS['y']
-        self.z = startGPS['z']
 
         # Calculate explorable area grid bounds in terms of GPS locations based on input exploration area size
         self.xMax = xRange['max']
@@ -51,6 +46,24 @@ class Drone:
         self.yResolutionSize = (self.bounds['yMax'] - self.bounds['yMin'])/self.resolutions['y']
         self.zResolutionSize = (self.bounds['zMax'] - self.bounds['zMin'])/self.resolutions['z']
         self.Maps = DroneObjectiveMapping( self.bounds, resolutions, id )
+        
+        startGPS = self.DataCollect.GetGPS()
+        self.x = startGPS['x']
+        self.y = startGPS['y']
+        self.z = startGPS['z']
+
+        '''
+        self.x = -1000
+        while self.x < -100 or self.x > 100:
+          self.DataCollect.GetNewMeasurement()
+          startGPS = self.DataCollect.GetGPS()
+
+          self.x = startGPS['x']
+          self.y = startGPS['y']
+          self.z = startGPS['z']
+          print "[drone] [%d] Initializing GPS [%f %f %f]" %(self.id, self.x, self.y, self.z)
+          time.sleep(1)
+        '''
 
         # If drone is starting within search area, set initial start destination to furthest exploration grid corner
         # If drone is not starting within search area, set objective to closest grid location
@@ -182,7 +195,7 @@ class Drone:
               print "[drone] [%d]: Y out of exploration area [%.4f %.4f] %.5f" %(self.id, self.yMin, self.yMax, self.y)
             
             if self.z < self.zMin or self.z > self.zMax:
-              print "[drone] [%d]: Z out of exploration area [%.4f %.4f] %.5f" %(self.id, self.yMin, self.yMax, self.y)
+              print "[drone] [%d]: Z out of exploration area [%.4f %.4f] %.5f" %(self.id, self.zMin, self.zMax, self.z)
             return
             
         #currMeasurement = self.DataCollect.GetNewMeasurement()

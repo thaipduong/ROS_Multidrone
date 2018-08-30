@@ -28,6 +28,13 @@ import CommRangeDetector;
 
 '''[GLOBAL VARS]------------------------------------------------------------'''
 COMM_DROPOFF = 25
+#FAKE_GPS_ORIGIN_X = 47.3667
+#FAKE_GPS_ORIGIN_Y = 8.5500
+#FAKE_GPS_ORIGIN_Z = 408.0
+
+FAKE_GPS_ORIGIN_X = 47.39774
+FAKE_GPS_ORIGIN_Y = 8.54561
+FAKE_GPS_ORIGIN_Z = 408.0
 
 '''[main]----------------------------------------------------------------------
   Drives program, initializes all modules and drones as well as their ROS
@@ -40,10 +47,15 @@ if __name__ == "__main__":
   # Desired grid resolution, number of drones, and communication radius (drone-to-drone range)
   resolutions = {'x':40,'y':40,'z':40}
 
-  xRange = {'min':47.3975, 'max':47.3980}
-  yRange = {'max':8.5455, 'min':8.545}
-  zRange = {'max':590, 'min':550}
-
+  #Works, but is way out there
+  #xRange = {'min':47.3975, 'max':47.3980}
+  #yRange = {'max':8.5455, 'min':8.545}
+  #zRange = {'max':590, 'min':550}
+  
+  xRange = {'min':FAKE_GPS_ORIGIN_X - 0.001, 'max':FAKE_GPS_ORIGIN_X + 0.001}
+  yRange = {'min':FAKE_GPS_ORIGIN_Y - 0.001, 'max':FAKE_GPS_ORIGIN_Y + 0.001}
+  zRange = {'min':FAKE_GPS_ORIGIN_Z + 150, 'max':FAKE_GPS_ORIGIN_Z + 200}
+  
   xStart = {}
   yStart = {}
   zStart = {}

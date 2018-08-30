@@ -69,6 +69,12 @@ class CommRangeDetector:
         self.commRange = commRange
         self.droneGPSTriples = {}
         self.droneROSTopics = {}
+        self.sdn_starting_buffer = {}
+
+        self.freq = 440000000
+        self.power = 20 + 25 + 25
+
+
         for i in range(numDrones):
             self.droneROSTopics[i+1] = DroneGPSSubscriber(i+1)
             self.droneGPSTriples[i+1] = (-1000,-1000,-1000)
@@ -88,8 +94,31 @@ class CommRangeDetector:
                 print "[comm] [range]: dist between [%d %d] is %f" %(i+1, j+i+1+1,dist)
                 if (dist < self.commRange):
                     self.TxPairs.append((i+1,j+i+1+1))
-                    self.commPublisher.publishDronePair(i+1,j+i+1+1, dist)
-                    print "[comm] [range]: Publishing drone pair %d/%d" %(i+1, j+i+1+1)
+                    
+                    # pair already being counted down
+                    if (i+1, j+i+1+1) in self.sdn_starting_buffer:
+
+                        # countdown has reached 0, publish
+                        if self.sdn_starting_buffer[(i+1, j+i+1+1)] == 0:
+                            self.commPublisher.publishDronePair(i+1,j+i+1+1, friisProp(self.freq, self.power, dist, 1))
+                            print "[comm] [range]: Publishing drone pair %d/%d" %(i+1, j+i+1+1)
+                        
+                        # countdown not at 0 yet, keep counting
+                        else:
+                            self.sdn_starting_buffer[(i+1, j+i+1+1)] -= 1
+                            print "[comm] [sdn] in range, continuing sdn reconfig countdown: ", self.sdn_starting_buffer[(i+1, j+i+1+1)]
+                    
+                    # add pair to sdn startnig buffer for countdown
+                    else:
+                        self.sdn_starting_buffer[(i+1, j+i+1+1)] = 2
+                        print "[comm] [sdn] in range, starting sdn reconfig countdown", self.sdn_starting_buffer[(i+1, j+i+1+1)]
+                
+                # remove pair from any existing sdn countdown
+                else:
+                    if (i+1, j+i+1+1) in self.sdn_starting_buffer:
+                        del self.sdn_starting_buffer[(i+1, j+i+1+1)]
+
+
 
     def CheckTxCorrect(self, drones):
         print "[comm]: Confirming data TX is correct"
@@ -115,7 +144,13 @@ class CommRangeDetector:
             i = i + 1
         time.sleep(2)
 
+def friisProp(freq, power, dist, loss):
+    wavelength = 299792458.0 / freq
+    
+    if dist == 0:
+      return power
 
+    return power * wavelength * wavelength / (16 * 9.86960440109 * dist * dist * loss)
 
 
 
