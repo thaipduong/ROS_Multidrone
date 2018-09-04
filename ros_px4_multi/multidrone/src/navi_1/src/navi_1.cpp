@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <string>
-#include <iostream>
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <mavros_msgs/SetMode.h> 
@@ -38,66 +36,34 @@ void signal(const std_msgs::Bool::ConstPtr& msg){
     landSig_ = *msg;
 }
 
-/* 
- * get distance
- * between two point in 3D space
- * using distance formula
- */
+/*get distance*/
 double range_calc(float lat,float lon,float alt,float t_lat,float t_lon,float t_alt){
     return pow(pow((lat-t_lat)*111111.11,2)+pow((lon-t_lon)*111111.11,2)+pow(alt-t_alt,2),0.5);
 }
 
 int main(int argc, char **argv)
 {
-  int droneCount=std::stoi(argv[1]);
   /*start script*/
-  //const char command []= "rosrun drone DroneRun.py %put drone count% &";
+  //const char command []= "rosrun drone drone_node_simulation_external-sensing.py &";
   //system(command);
-  //havn't tested this^^ yet but it can potentially make this the 
-  //only thing user need to manually execute
-  
-  /*spawn proccesses for each drone*/
-  int pid=-1;
-  int i=0; 
-  for(i=1;i<droneCount;i++){
-    pid=fork();
-    if(pid==-1){
-      /*error*/
-    }
-    if(pid==0){
-      break;
-    }
-    
-  }
-  /*create string based on the loop logic*/
-  std::string nodename= "px4_navi_"+std::to_string(i);
-  std::string groupNS="uav"+std::to_string(i);
-  std::string stateSubS=groupNS+"/mavros/state";
-  std::string nextTSubS=groupNS+"/Obj";
-  std::string gpsSubS=groupNS+"/mavros/global_position/global";
-  //std::string signalSubS=groupNS+"/mavros/state";
-  std::string targetPubS=groupNS+"/mavros/setpoint_position/global";
-  std::string armCliS=groupNS+"/mavros/cmd/arming";
-  std::string setModeCliS=groupNS+"/mavros/set_mode";
-  std::string landCliS=groupNS+"/mavros/cmd/land";
+  //havn't tested this yet ^^ the & makes it unblocking apparently
 
   /*create ros node*/
-  ros::init(argc, argv, nodename);
-   
+  ros::init(argc, argv, "px4_navi_1");
+  
   /*initialize handlers*/
   ros::NodeHandle nh;
-  ros::Subscriber state_sub_ = nh.subscribe<mavros_msgs::State>(stateSubS, 10, state_callback);
-  ros::Subscriber nextT_sub_ = nh.subscribe<sensor_msgs::NavSatFix>(nextTSubS, 10, nextT_callback);//geo msg
-  ros::Subscriber gps_sub_ = nh.subscribe<sensor_msgs::NavSatFix>(gpsSubS, 10, gps_callback);//geo msg
-  //ros::Subscriber signal_sub_ =nh.subscribe<std_msgs::Bool>("land_sig", 10, signal);
+  ros::Subscriber state_sub_ = nh.subscribe<mavros_msgs::State>("uav1/mavros/state", 10, state_callback);
+  ros::Subscriber nextT_sub_ = nh.subscribe<sensor_msgs::NavSatFix>("FakeDroneObj_1", 10, nextT_callback);//geo msg
+  ros::Subscriber gps_sub_ = nh.subscribe<sensor_msgs::NavSatFix>("uav1/mavros/global_position/global", 10, gps_callback);//geo msg
+  ros::Subscriber signal_sub_ =nh.subscribe<std_msgs::Bool>("land_sig", 10, signal);
 
-  ros::Publisher target_publisher_ = nh.advertise<mavros_msgs::GlobalPositionTarget>(targetPubS, 10);
+  ros::Publisher target_publisher_ = nh.advertise<mavros_msgs::GlobalPositionTarget>("uav1/mavros/setpoint_position/global", 10);
 
-  ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>(armCliS);
-  ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>(setModeCliS);
+  ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("uav1/mavros/cmd/arming");
+  ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>("uav1/mavros/set_mode");
   //ros::ServiceClient takeoff_client = nh.serviceClient<mavros_msgs::CommandTOL>("uav1/mavros/cmd/takeoff");
-  ros::ServiceClient landing_client = nh.serviceClient<mavros_msgs::CommandTOL>(landCliS);
-  
+  ros::ServiceClient landing_client = nh.serviceClient<mavros_msgs::CommandTOL>("uav1/mavros/cmd/land") ;
   /*declare msg*/
   mavros_msgs::GlobalPositionTarget target_;
   mavros_msgs::SetMode guided_mode;
@@ -105,18 +71,18 @@ int main(int argc, char **argv)
   mavros_msgs::CommandTOL takeoff_cmd;
   mavros_msgs::CommandTOL land_cmd;
   
-  /*TODO check sensors status NOT IMPLEMENTED*/
+  /*check sensors NOT IMPLEMENTED*/
   
-  /*TODO check battery status NOT IMPLEMENTED*/
+  /*check battery NOT IMPLEMENTED*/
   
   //battery state msg in mavros
   
-  /*operating rate in Hz*/
+  /*operating rate in Hz?*/
   ros::Rate rate(20.0);
   while(ros::ok() && !current_state.connected){
         ros::spinOnce();
         rate.sleep();
-  }
+    }
   
   
   /*assign value to msg*/
@@ -128,7 +94,6 @@ int main(int argc, char **argv)
   target_.latitude=gpsLoc_.latitude;
   target_.longitude=gpsLoc_.longitude;
   target_.altitude=gpsLoc_.altitude+30;
-  
   /*mode switch request-MODE NAME DEPENDS ON FLIGHT STACK*/
   //px4 uses offboard mode
   guided_mode.request.custom_mode = "OFFBOARD";
@@ -136,8 +101,7 @@ int main(int argc, char **argv)
     pose.pose.position.x = 0;
     pose.pose.position.y = 0;
     pose.pose.position.z = 10;
-  */
-  
+*/
   /*offboard mode require stream setpoints to be started, 100 is arbituary*/
   for(int i = 100; ros::ok() && i > 0; --i){
         target_publisher_.publish(target_);
@@ -169,12 +133,8 @@ int main(int argc, char **argv)
   /*wait for arming to finish*/
   //sleep(2);
   double home_alt=gpsLoc_.altitude;
-  
-  /*take off---
-   * in px4 take off is taken care of by
-   * target assignment
-   */
-  /*
+  /*take off-px4 take off is taken care of by */
+  /*//try other take off methods
   if( takeoff_client.call(takeoff_cmd) && takeoff_cmd.response.success){
     ROS_INFO("drone took off");
   }else{
@@ -189,18 +149,14 @@ int main(int argc, char **argv)
   /*Loop*/
   while(ros::ok()){
 
-    /*
-     * check if reached the destination
-     * by using distance caluclation
-     * '5' is just an arbituary number
-     */
+    
     if(
     range_calc(gpsLoc_.latitude,gpsLoc_.longitude,gpsLoc_.altitude,target_.latitude,target_.longitude,target_.altitude)
     <5
     ){
       target_set=false;
+    
     }
-
     /*TODO:Landing not implemented, though px4 auto returns home if setpoint stream is cut*/
     if(landSig_.data){
     
@@ -225,8 +181,6 @@ int main(int argc, char **argv)
     //!current_state.guided || 
     target_set){
       /*do nothing*/
-
-      //Debug
       //ROS_INFO("Drone Moving to Target lat %f, long  %f,alt %f, home %f, gpsl: %f, %f, %f",
       //target_.latitude,target_.longitude,target_.altitude, home_alt,
       //gpsLoc_.latitude,gpsLoc_.longitude, gpsLoc_.altitude);
@@ -238,23 +192,21 @@ int main(int argc, char **argv)
     !target_set
     //&& not sure about this implementation
     ){
-      ROS_INFO("Target Acquired");
       /*get target location*/
-      
-      /*TODO maybe by updating the time stamp can
-      * skip the mavros modification
-      */
       //target_.header.stamp = ros::Time::now();
       target_.latitude=nextT_.latitude;
       target_.longitude=nextT_.longitude;
       target_.altitude=nextT_.altitude;
       
+      /*publish waypoint and fly there*/
       
-      ROS_INFO("%f, %f ,%f", target_.latitude, target_.longitude,target_.altitude);
+      ROS_INFO("TARGET ACQUIRED [%f, %f ,%f]", target_.latitude, target_.longitude,target_.altitude);
       target_set=true;
+      debugger++;
+      //if(debugger>1)
+        //exit(0);
     }
     
-    /*publish waypoint and fly there*/
     target_publisher_.publish(target_);
     ros::spinOnce();
     rate.sleep();

@@ -21,10 +21,11 @@ import numpy
 import random
 import time
 import json
-import DroneModule;
-import FakeDroneSensor;
-import FakeDroneGPS;
-import CommRangeDetector;
+
+import DroneModule
+import FakeDroneSensor
+import FakeDroneGPS
+import CommRangeDetector
 
 '''[GLOBAL VARS]------------------------------------------------------------'''
 COMM_DROPOFF = 25
@@ -52,8 +53,8 @@ if __name__ == "__main__":
   #yRange = {'max':8.5455, 'min':8.545}
   #zRange = {'max':590, 'min':550}
   
-  xRange = {'min':FAKE_GPS_ORIGIN_X - 0.001, 'max':FAKE_GPS_ORIGIN_X + 0.001}
-  yRange = {'min':FAKE_GPS_ORIGIN_Y - 0.001, 'max':FAKE_GPS_ORIGIN_Y + 0.001}
+  xRange = {'min':FAKE_GPS_ORIGIN_X - 0.0003, 'max':FAKE_GPS_ORIGIN_X + 0.0003}
+  yRange = {'min':FAKE_GPS_ORIGIN_Y - 0.0003, 'max':FAKE_GPS_ORIGIN_Y + 0.0003}
   zRange = {'min':FAKE_GPS_ORIGIN_Z + 150, 'max':FAKE_GPS_ORIGIN_Z + 200}
   
   xStart = {}
@@ -72,33 +73,40 @@ if __name__ == "__main__":
   print "[main] Drone Test Script Start!"
 
   #Need to handle manually setting each drone's ID
-  print "[main] no droneGPS created: simulation GPS used instead"
+  #print "[main] no droneGPS created: simulation GPS used instead"
 
   #Fake gas sensor module data
-  #randomFlag: 0 = seeded random values, 1 = non-seeded random values
-  randomFlag = 0
   gasSensors = {}
-  for i in range(1,numDrones+1):
-    gasSensors[i] = FakeDroneSensor.FakeDroneSensor(xRange, yRange, zRange, resolutions, randomFlag, i, 1, 3)
-    print "[main] FakeGasSensorModule w/ id=%d created" %numDrones
-  print "[main] gasSensorModule created"
 
   commDetector = CommRangeDetector.CommRangeDetector(2, COMM_DROPOFF)
-  print "[main] commDetection created"
+  print "[main] commDetector created"
 
-  drones = {}
-  for i in range(1,numDrones+1):
-    drones[i] = DroneModule.Drone(xRange, yRange, zRange, resolutions, i)
+  drones = []
+  for i in range(numDrones):
+    drones.append(DroneModule.Drone(xRange, yRange, zRange, resolutions, i + 1))
     print "[main] Drone id %d created" %i
   print "[main] Drones created"
-  for i in range(1,numDrones+1):
-    drones[i].PublishObj()
 
   #TODO: Test aging exponent in sim
   print "[main] Starting loop!"
+  
+  for d in drones:
+    d.start()
 
   loop = 1
   while not rospy.is_shutdown():
+    try:
+      time.sleep(1)
+      #print "[main] [%d] Iteration complete ----------" %(loop)
+      #loop = loop + 1
+
+    except KeyboardInterrupt:
+      print "[main] Rospy shutdown detected. Stopping drone ROS modules!"
+
+      for i in drones:
+        drones.callback("end")
+
+      print "[main] All drone modules stopped"
 
     #TODO find way to parallelize the drones better
     
@@ -107,7 +115,7 @@ if __name__ == "__main__":
       drones[i].PublishObj()
       gasSensors[i].PublishGasSensorValue()
     '''
-
+    '''
     #publish objectives and air quality samples
     for i in range(1,numDrones+1):
       drones[i].PublishObj()
@@ -138,7 +146,8 @@ if __name__ == "__main__":
     
     print "[main] [%d] Iteration complete ----------" %(loop)
     loop = loop + 1
+    '''
   
-  print "[main] Rospy shutdown detected. Stopped drone ROS modules!"
+  #print "[main] Rospy shutdown detected. Stopped drone ROS modules!"
 
 
