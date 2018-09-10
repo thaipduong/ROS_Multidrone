@@ -205,8 +205,8 @@ int main(int argc, char **argv) {
      * by using distance caluclation
      * '5' is just an arbituary number
      */
-    if(range_calc(gpsLoc_.latitude,gpsLoc_.longitude,gpsLoc_.altitude,target_.latitude,target_.longitude,target_.altitude) <5){
-      target_set=false;
+    if(range_calc(gpsLoc_.latitude,gpsLoc_.longitude,gpsLoc_.altitude,target_.latitude,target_.longitude,target_.altitude) < 5){
+      target_set = false;
     }
 
     /*TODO:Landing not implemented, though px4 auto returns home if setpoint stream is cut*/
@@ -226,7 +226,8 @@ int main(int argc, char **argv) {
     
       exit(0);
     }
-
+    
+    //TODO what is point of target_ publisher if nextT is already publishing a location?
     /*condition check for msg-px4 does not have guided mode thus the check for guided is gone*/
     /*not in guided mode || (drone moving to target or gps!=target)*/
     //!current_state.guided || 
@@ -253,9 +254,8 @@ int main(int argc, char **argv) {
       target_.longitude=nextT_.longitude;
       target_.altitude=nextT_.altitude;
       
-      
-      ROS_INFO("Next target set %f, %f ,%f", target_.latitude, target_.longitude,target_.altitude);
-      target_set=true;
+      //ROS_INFO("Next target set %f, %f ,%f", target_.latitude, target_.longitude,target_.altitude);
+      target_set = true;
     }
     
     /*publish waypoint and fly there*/

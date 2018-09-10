@@ -239,8 +239,8 @@ my $groupStr = "
         <arg name=\"ID\" value=\"${droneNum}\"/>
 
         <include file=\"\$(find px4)/launch/single_vehicle_spawn.launch\">
-            <arg name=\"x\" value=\"${\($droneNum-1)}\"/>
-            <arg name=\"y\" value=\"0\"/>
+            <arg name=\"x\" value=\"${\(($droneNum-1) / 4)}\"/>
+            <arg name=\"y\" value=\"${\(($droneNum-1) % 4)}\"/>
             <arg name=\"z\" value=\"0\"/>
             <arg name=\"R\" value=\"0\"/>
             <arg name=\"P\" value=\"0\"/>
@@ -283,8 +283,8 @@ for my $i (1..$ARGV[0]){
         <arg name=\"ID\" value=\"${droneNum}\"/>
 
         <include file=\"\$(find px4)/launch/single_vehicle_spawn.launch\">
-            <arg name=\"x\" value=\"${\($droneNum-1)}\"/>
-            <arg name=\"y\" value=\"0\"/>
+            <arg name=\"x\" value=\"${\(($droneNum-1) / 4)}\"/>
+            <arg name=\"y\" value=\"${\(($droneNum-1) % 4)}\"/>
             <arg name=\"z\" value=\"0\"/>
             <arg name=\"R\" value=\"0\"/>
             <arg name=\"P\" value=\"0\"/>

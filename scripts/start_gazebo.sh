@@ -6,7 +6,7 @@ then
 	exit 1
 fi
 
-source ~/projects/ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash
+source ~/projects/ROS_Sim/ros_px4_multi/multidrone/devel/setup.bash
 source ${FIRMWARE_DIR}/Tools/setup_gazebo.bash ${FIRMWARE_DIR} ${FIRMWARE_DIR}/build/posix_sitl_default
 export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:${FIRMWARE_DIR}
 export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:${FIRMWARE_DIR}/Tools/sitl_gazebo

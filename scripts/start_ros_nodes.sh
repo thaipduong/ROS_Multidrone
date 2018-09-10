@@ -18,5 +18,5 @@ fi
 source /opt/ros/kinetic/setup.bash
 source ~/catkin_ws/devel/setup.bash
 
-source ${ROS_SIM_DIR}/ros_px4_multi/testnavi/devel/setup.bash
-python ${ROS_SIM_DIR}/ros_px4_multi/testnavi/src/drone/scripts/DroneRun.py ${NUM_DRONES}
+source ${ROS_SIM_DIR}/ros_px4_multi/multidrone/devel/setup.bash
+python ${ROS_SIM_DIR}/ros_px4_multi/multidrone/src/drone/scripts/DroneRun.py ${NUM_DRONES}
