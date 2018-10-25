@@ -1,7 +1,7 @@
 /*-----------------------------------------------------------------------------
 
                                                          Author: Jason Ma
-                                                                 David ?
+                                                                 David Yang
                                                                  Michael Chen
                                                          Date:   Sep 04 2018
                               ROS PX4 Multi-drone
@@ -9,8 +9,7 @@
   File Name:      navi.cpp
   Description:    Navigation controller for a variable number of drones. Acts
                   as interface between DroneModule.py and PX4/mavros. The
-                  waypoints that are published on target_ are the targets acted
-                  on by flight controller.
+                  waypoints/velocities published here are what drones follow.
 -----------------------------------------------------------------------------*/
 
 #include <stdio.h>
@@ -20,6 +19,8 @@
 #include <iostream>
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <mavros_msgs/SetMode.h> 
 #include <mavros_msgs/State.h> 
 #include <mavros_msgs/CommandBool.h>
@@ -28,193 +29,254 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <std_msgs/Bool.h>
 
-
-/*get state of drone*/
+// get state of drone 
 mavros_msgs::State current_state;
 void state_callback(const mavros_msgs::State::ConstPtr& msg) {
   current_state = *msg;
 }
 
-/*get next target msg from decision code*/
-sensor_msgs::NavSatFix nextT_;
-void nextT_callback(const sensor_msgs::NavSatFix::ConstPtr& msg) {
-  nextT_ = *msg;
+// get next target msg from decision code 
+sensor_msgs::NavSatFix pos_next;
+void target_callback(const sensor_msgs::NavSatFix::ConstPtr& msg) {
+  pos_next = *msg;
 }
 
-/*get current lcoation*/
-sensor_msgs::NavSatFix gpsLoc_;
+// get current lcoation 
+sensor_msgs::NavSatFix pos_gps;
 void gps_callback(const sensor_msgs::NavSatFix::ConstPtr& msg) {
-  gpsLoc_ = *msg;
+  pos_gps = *msg;
 }
 
-/*get landing signal*/
-std_msgs::Bool landSig_;
-void signal(const std_msgs::Bool::ConstPtr& msg) {
-  landSig_ = *msg;
+// get landing signal
+std_msgs::Bool land_signal;
+void land_signal_callback(const std_msgs::Bool::ConstPtr& msg) {
+  land_signal = *msg;
 }
 
-/* 
-* get distance
-* between two point in 3D space
-* using distance formula
-*/
+//[Global vars]----------------------------------------------------------------
+
+
+mavros_msgs::GlobalPositionTarget pos_target;
+mavros_msgs::SetMode mode_guided;
+mavros_msgs::CommandBool cmd_arm;
+mavros_msgs::CommandTOL cmd_takeoff;
+mavros_msgs::CommandTOL cmd_land;
+
+geometry_msgs::TwistStamped vel_target_stamped;
+
+// Subscribers
+ros::Subscriber sub_state;
+ros::Subscriber sub_obj;
+ros::Subscriber sub_gps;
+//ros::Subscriber sub_signal;
+
+// Publishers
+ros::Publisher pub_pos;
+ros::Publisher pub_vel;
+//ros::Publisher pub_vel_ang;
+
+// Clients
+ros::ServiceClient arming_client;
+ros::ServiceClient set_mode_client;
+//ros::ServiceClient takeoff_client;
+ros::ServiceClient landing_client;
+
+/*-----------------------------------------------------------------------------
+  Routine Name: pub_lin_vel
+  File:         navi.cpp
+  
+  Description: Publishes linear velocity vector
+  
+  Parameter Descriptions:
+  name               description
+  ------------------ -----------------------------------------------
+  x                  x velocity
+  y                  y velocity
+  z                  z velocity (altitude)
+-----------------------------------------------------------------------------*/
+void pub_lin_vel(double x, double y, double z) {
+  geometry_msgs::Twist vel_target;
+  geometry_msgs::Vector3 vel_lin_target;
+  geometry_msgs::Vector3 vel_ang_target;
+
+  vel_target_stamped.header.stamp = ros::Time::now();
+  vel_target_stamped.header.seq++;
+
+  vel_lin_target.x = x;
+  vel_lin_target.y = y;
+  vel_lin_target.z = z;
+
+  vel_ang_target.x = 0;
+  vel_ang_target.y = 0;
+  vel_ang_target.z = 0; //yaw
+  
+  vel_target.linear = vel_lin_target;
+  vel_target.angular = vel_ang_target;
+  vel_target_stamped.twist = vel_target;
+
+  pub_vel.publish(vel_target_stamped);
+}
+
+
+/*-----------------------------------------------------------------------------
+  Routine Name: range_calc
+  File:         navi.cpp
+  
+  Description: Calculates distance between two gps coordinates in meters
+  
+  Parameter Descriptions:
+  name               description
+  ------------------ -----------------------------------------------
+  lat/lon/alt        first set of gps coords
+  t_lat/t_lon/t_alt  second set of gps coords
+  return             distance between gps coordinates
+-----------------------------------------------------------------------------*/
 double range_calc(float lat, float lon, float alt, float t_lat, float t_lon, float t_alt) {
   return pow(pow((lat - t_lat) * 111111.11, 2) + pow((lon - t_lon) * 111111.11,2) + pow(alt - t_alt, 2), 0.5);
 }
 
+/*-----------------------------------------------------------------------------
+  Routine Name: main
+  File:         navi.cpp
+  
+  Description: Multi-process program to spin up ROS nodes and control them as
+               a swarm.
+  
+  Parameter Descriptions:
+  name               description
+  ------------------ -----------------------------------------------
+  argc               argument count
+  argv               argument vector
+-----------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
-  int droneCount=std::stoi(argv[1]);
-  /*start script*/
+  int num_drones = std::stoi(argv[1]);
+  
   //const char command []= "rosrun drone DroneRun.py %put drone count% &";
   //system(command);
   //havn't tested this^^ yet but it can potentially make this the 
   //only thing user need to manually execute
   
-  /*spawn proccesses for each drone*/
+  // Spawn proccesses for each drone
   int pid = -1;
   int i = 0; 
-  for(i = 1; i < droneCount; i++){
+  for(i = 1; i < num_drones; i++){
     pid = fork();
     if(pid == -1) {
-      /*error*/
       std::cerr << "Process spawning failed" << std::endl;
     }
     if(pid == 0) {
       break;
     }
   }
-  
-  std::cerr << "PID " << pid << std::endl;
-  
-  /*create string based on the loop logic*/
-  std::string nodename= "px4_navi_"+std::to_string(i);
-  std::string groupNS="uav"+std::to_string(i);
-  std::string stateSubS=groupNS+"/mavros/state";
-  std::string nextTSubS=groupNS+"/Obj";
-  std::string gpsSubS=groupNS+"/mavros/global_position/global";
-  //std::string signalSubS=groupNS+"/mavros/state";
-  std::string targetPubS=groupNS+"/mavros/setpoint_position/global";
-  std::string armCliS=groupNS+"/mavros/cmd/arming";
-  std::string setModeCliS=groupNS+"/mavros/set_mode";
-  std::string landCliS=groupNS+"/mavros/cmd/land";
 
-  /*create ros node*/
+  // Create names under namespace for individual drone
+  std::string nodename       = "px4_navi_" + std::to_string(i);
+  std::string group_ns       = "uav" + std::to_string(i);
+
+  // Create ros node
   ros::init(argc, argv, nodename);
-   
-  /*initialize handlers*/
   ros::NodeHandle nh;
-  ros::Subscriber state_sub_ = nh.subscribe<mavros_msgs::State>(stateSubS, 10, state_callback);
-  ros::Subscriber nextT_sub_ = nh.subscribe<sensor_msgs::NavSatFix>(nextTSubS, 10, nextT_callback);//geo msg
-  ros::Subscriber gps_sub_ = nh.subscribe<sensor_msgs::NavSatFix>(gpsSubS, 10, gps_callback);//geo msg
-  //ros::Subscriber signal_sub_ =nh.subscribe<std_msgs::Bool>("land_sig", 10, signal);
-
-  ros::Publisher target_publisher_ = nh.advertise<mavros_msgs::GlobalPositionTarget>(targetPubS, 10);
-
-  ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>(armCliS);
-  ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>(setModeCliS);
-  //ros::ServiceClient takeoff_client = nh.serviceClient<mavros_msgs::CommandTOL>("uav1/mavros/cmd/takeoff");
-  ros::ServiceClient landing_client = nh.serviceClient<mavros_msgs::CommandTOL>(landCliS);
-  
-  /*declare msg*/
-  mavros_msgs::GlobalPositionTarget target_;
-  mavros_msgs::SetMode guided_mode;
-  mavros_msgs::CommandBool arm_cmd;
-  mavros_msgs::CommandTOL takeoff_cmd;
-  mavros_msgs::CommandTOL land_cmd;
-  
-  /*TODO check sensors status NOT IMPLEMENTED*/
-  
-  /*TODO check battery status NOT IMPLEMENTED*/
-  
-  //battery state msg in mavros
-  
-  /*operating rate in Hz*/
   ros::Rate rate(20.0);
 
-  //wait until node spins up
+  // Subscriber topic names
+  std::string sub_state_str  = group_ns + "/mavros/state";
+  std::string sub_obj_str    = group_ns + "/Obj";
+  std::string sub_gps_str    = group_ns + "/mavros/global_position/global";
+
+  // Publisher topic names
+  std::string pub_pos_str    = group_ns + "/mavros/setpoint_position/global";
+  std::string pub_vel_str    = group_ns + "/mavros/setpoint_velocity/cmd_vel";
+  //std::string ang_vel_pub_s = groupNS + "/mavros/setpoint_attitude/cmd_vel";
+
+  // Client topic names
+  std::string cli_arming_str = group_ns + "/mavros/cmd/arming";
+  std::string cli_mode_str   = group_ns + "/mavros/set_mode";
+  std::string cli_land_str   = group_ns + "/mavros/cmd/land";
+
+  // Subscribers
+  sub_state = nh.subscribe<mavros_msgs::State>(sub_state_str, 10, state_callback);
+  sub_obj = nh.subscribe<sensor_msgs::NavSatFix>(sub_obj_str, 10, target_callback); //geo msg
+  sub_gps = nh.subscribe<sensor_msgs::NavSatFix>(sub_gps_str, 10, gps_callback); //geo msg
+  //sub_signal = nh.subscribe<std_msgs::Bool>("land_sig", 10, land_signal_callback);
+
+  // Publishers
+  pub_pos = nh.advertise<mavros_msgs::GlobalPositionTarget>(pub_pos_str, 10);
+  pub_vel = nh.advertise<geometry_msgs::TwistStamped>(pub_vel_str, 10);
+  //pub_vel_ang = nh.advertise<geometry_msgs::Twist>(pub_vel_ang_str, 10);
+
+  // Clients
+  arming_client = nh.serviceClient<mavros_msgs::CommandBool>(cli_arming_str);
+  set_mode_client = nh.serviceClient<mavros_msgs::SetMode>(cli_mode_str);
+  //takeoff_client = nh.serviceClient<mavros_msgs::CommandTOL>("uav1/mavros/cmd/takeoff");
+  landing_client = nh.serviceClient<mavros_msgs::CommandTOL>(cli_land_str);
+
+
+  //[Drone logic start]--------------------------------------------------------
+  /*TODO check sensors status NOT IMPLEMENTED*/
+  /*TODO check battery status NOT IMPLEMENTED*/
+  //battery state msg in mavros
+  
+  // Wait until ROS node spins up
   while(ros::ok() && !current_state.connected){
     ros::spinOnce();
     rate.sleep();
   }
+ 
+  double alt_home = pos_gps.altitude;
   
-  
-  /*assign value to msg*/
+  // Set initial target position to 30 meters above home position
+  pos_target.latitude  = pos_gps.latitude;
+  pos_target.longitude = pos_gps.longitude;
+  pos_target.altitude  = pos_gps.altitude + 30;
 
-  /*get starting location, mask n frame*/
-  
-  //target_.coordinate_frame=6;
-  //target_.type_mask=4088;
-  target_.latitude = gpsLoc_.latitude;
-  target_.longitude = gpsLoc_.longitude;
-  target_.altitude = gpsLoc_.altitude + 30;
-
-  double home_alt = gpsLoc_.altitude;
-  
-  /*mode switch request-MODE NAME DEPENDS ON FLIGHT STACK*/
-  //px4 uses offboard mode
-   /* 
-    pose.pose.position.x = 0;
-    pose.pose.position.y = 0;
-    pose.pose.position.z = 10;
-  */
-  
-  /*offboard mode require stream setpoints to be started, 100 is arbituary*/
+  // Publish init target to stream so offboard doesn't shut down immediately
   for(int i = 100; ros::ok() && i > 0; --i){
-    target_publisher_.publish(target_);
+    //pub_pos.publish(pos_target);
+    pub_lin_vel(0, 0, 5);
     ros::spinOnce();
     rate.sleep();
   }
   
-  guided_mode.request.custom_mode = "OFFBOARD";
+  // Set px4 mode to offboard and begin takeoff sequence if on ground
+  mode_guided.request.custom_mode = "OFFBOARD";
+  cmd_arm.request.value = true;
+  cmd_takeoff.request.altitude = 15;
 
-  /*arming request*/
-  arm_cmd.request.value = true;
-
-  /*take off request*/
-  takeoff_cmd.request.altitude= 15;
-
-  bool target_set=false;
-  int debugger=0;
+  bool at_target = false;
+  bool alt_reached = false;
+  int debugger = 0;
   ros::Time last_request = ros::Time::now();
   
-  /*Loop*/
+  // Loop while ROS is online
   while(ros::ok()){
+    //handle takeoff sequence
     if(current_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) {
-      if(set_mode_client.call(guided_mode) && guided_mode.response.mode_sent) {
+      if(set_mode_client.call(mode_guided) && mode_guided.response.mode_sent) {
         ROS_INFO("[debug] Offboard enabled");
       }
       last_request = ros::Time::now();
     }
     else {
       if(!current_state.armed && (ros::Time::now() - last_request > ros::Duration(5.0))) {
-        target_.latitude=gpsLoc_.latitude;
-        target_.longitude=gpsLoc_.longitude;
-        target_.altitude=gpsLoc_.altitude+30;
-        home_alt=gpsLoc_.altitude;
-        target_set = true;
+        pos_target.latitude  = pos_gps.latitude;
+        pos_target.longitude = pos_gps.longitude;
+        pos_target.altitude  = pos_gps.altitude + 30;
+        alt_home = pos_gps.altitude;
+        at_target = false;
 
-        if(arming_client.call(arm_cmd) && arm_cmd.response.success) {
-          ROS_INFO("[debug] Vehicle armed [%f %f %f]", target_.latitude, target_.longitude, target_.altitude);
+        if(arming_client.call(cmd_arm) && cmd_arm.response.success) {
+          ROS_INFO("[debug] Vehicle armed [%f %f %f]", pos_target.latitude, pos_target.longitude, pos_target.altitude);
         }
         last_request = ros::Time::now();
       }
     }
 
-    /*
-     * check if reached the destination
-     * by using distance caluclation
-     * '5' is just an arbituary number
-     */
-    if(range_calc(gpsLoc_.latitude,gpsLoc_.longitude,gpsLoc_.altitude,target_.latitude,target_.longitude,target_.altitude) < 5){
-      target_set = false;
-    }
-
     /*TODO:Landing not implemented, though px4 auto returns home if setpoint stream is cut*/
-    if(landSig_.data){
+    if(land_signal.data){
     
       /*can use landing state in topic extended state?*/
       /*perform service call to land*/
-      if( landing_client.call(land_cmd) && land_cmd.response.success){
+      if( landing_client.call(cmd_land) && cmd_land.response.success){
         ROS_INFO("drone is landing");
         sleep(100);
       }else{
@@ -227,39 +289,29 @@ int main(int argc, char **argv) {
       exit(0);
     }
     
-    //TODO what is point of target_ publisher if nextT is already publishing a location?
-    /*condition check for msg-px4 does not have guided mode thus the check for guided is gone*/
-    /*not in guided mode || (drone moving to target or gps!=target)*/
-    //!current_state.guided || 
-    if(target_set){
-      /*do nothing and let px4 fly drone to target*/
+    //check whether at destination
+    if(range_calc(pos_gps.latitude, pos_gps.longitude, pos_gps.altitude, pos_target.latitude, pos_target.longitude, pos_target.altitude) < 5){
+      at_target = true;
+    }
 
-      //Debug
-      //ROS_INFO("[debug] Drone Moving to Target lat %f, long  %f,alt %f, home %f, gpsl: %f, %f, %f",
-      //target_.latitude,target_.longitude,target_.altitude, home_alt,
-      //gpsLoc_.latitude,gpsLoc_.longitude, gpsLoc_.altitude);
-      //target_publisher_.publish(target_);
-    }
-    /*guided mode && waypoint msg*/
-    //current_state.guided && 
-    else if(!target_set){
-    //&& not sure about this implementation
-      /*get target location*/
-      
-      /*TODO maybe by updating the time stamp can
-      * skip the mavros modification
-      */
-      //target_.header.stamp = ros::Time::now();
-      target_.latitude=nextT_.latitude;
-      target_.longitude=nextT_.longitude;
-      target_.altitude=nextT_.altitude;
-      
+    //if at target, set new target waypoint
+    if(at_target){
+      //target_.latitude=nextT_.latitude;
+      //target_.longitude=nextT_.longitude;
+      //target_.altitude=nextT_.altitude;
+      alt_reached = true;
       //ROS_INFO("Next target set %f, %f ,%f", target_.latitude, target_.longitude,target_.altitude);
-      target_set = true;
+      at_target = false;
     }
-    
-    /*publish waypoint and fly there*/
-    target_publisher_.publish(target_);
+
+    if(alt_reached) {
+      pub_lin_vel(5, 0, 0);
+    }
+    else {
+      pub_lin_vel(0, 0, 5);
+      //pub_pos.publish(pos_target);
+    }
+    //ang_vel_pub.publish(target_vel);
     ros::spinOnce();
     rate.sleep();
   

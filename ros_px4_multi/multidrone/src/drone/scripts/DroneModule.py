@@ -68,42 +68,11 @@ class Drone(threading.Thread):
     self.y = GPSLoc['y']
     self.z = GPSLoc['z']
 
-    # If drone is starting within search area, set initial start destination to furthest exploration grid corner
-    # If drone is not starting within search area, set objective to closest grid location
-    # TODO: Better start destination
-    #print "Drone %d sx: %f/%f/%f" %(self.x, self.xMin, self.xMax)
-    #print "Drone %d y: %f/%f/%f" %(self.y, self.yMin, self.yMax)
-    #print "Drone %d z: %f/%f/%f" %(self.z, self.zMin, self.zMax)
-    if not ((self.x <= self.bounds['xMax']) and (self.x >= self.bounds['xMin'])):
-      if (self.x > self.bounds['xMax']):
-        self.xObjective = self.bounds['xMax']
-      else:
-        self.xObjective = self.bounds['xMin']
-    else:
-      if self.x < ((self.bounds['xMax'] - self.bounds['xMin']) / 2):
-        self.xObjective = self.bounds['xMax']
-      else:
-        self.xObjective = self.bounds['xMin']
-    if not ((self.y <= self.bounds['yMax']) and (self.y >= self.bounds['yMin'])):
-      if (self.y > self.bounds['yMax']):
-        self.yObjective = self.bounds['yMax']
-      else:
-        self.yObjective = self.bounds['yMin']
-    else:
-      if self.y < ((self.bounds['yMax'] - self.bounds['yMin']) / 2):
-        self.yObjective = self.bounds['yMax']
-      else:
-        self.yObjective = self.bounds['yMin']
-    if not ((self.z <= self.bounds['zMax']) and (self.z >= self.bounds['zMin'])):
-      if (self.z > self.bounds['zMax']):
-        self.zObjective = self.bounds['zMax']
-      else:
-        self.zObjective = self.bounds['zMin']
-    else:
-      if self.z < ((self.bounds['zMax'] - self.bounds['zMin']) / 2):
-        self.zObjective = self.bounds['zMax']
-      else:
-        self.zObjective = self.bounds['zMin']
+    #set start objective to be center of search area
+    self.xObjective = (self.bounds['xMax'] - self.bounds['xMin']) / 2
+    self.yObjective = (self.bounds['yMax'] - self.bounds['yMin']) / 2
+    self.zObjective = (self.bounds['zMax'] - self.bounds['zMin']) / 2
+    
 
     #self.DataCollect.UpdateObjective(self.xObjective, self.yObjective, self.zObjective)
     obj = DroneMeasurement(self.xObjective, self.yObjective, self.zObjective, 0, 0)
