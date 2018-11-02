@@ -305,7 +305,7 @@ int main(int argc, char **argv) {
     }
 
     if(alt_reached) {
-      pub_lin_vel(5, 0, 0);
+      pub_lin_vel(10, 0, 0);
     }
     else {
       pub_lin_vel(0, 0, 5);
