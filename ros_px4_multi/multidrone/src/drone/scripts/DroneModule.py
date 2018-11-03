@@ -29,7 +29,7 @@ from drone.msg import GridData
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import MultiArrayDimension
 from sensor_msgs.msg import NavSatFix
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, Vector3
 
 import FakeDroneSensor
 
@@ -156,7 +156,6 @@ class drone(threading.Thread):
 
     print "[drone] [%d] Initialized GPS [%f %f %f]" % (self.uav_id, self.x, self.y, self.z)
     
-    self.mission_id = -1
     while not self.end_thread:
       
       #TODO add mission-level state control for interactive inputs
@@ -168,7 +167,9 @@ class drone(threading.Thread):
       
       #publish a velocity vector so C++ module can interpolate and send to px4
       vel_ref = self.pid.vel_control_output(self.pos_ref)
-      self.pub_vel_ref.publish(vel_ref)
+      self.pub_vel_ref.set_vel(vel_ref)
+      #self.pub_vel_ref.set_vel(np.array([5, 0, 0]))
+      self.pub_vel_ref.pub_vel()
     
       #print(self.uav_id, self.pos, pid_output, self.pid.kp * error, self.pid.ki * self.integral, self.pid.kd * derivative)
       
@@ -231,7 +232,7 @@ class pos_gps_subscriber:
     self.longitude = msg.longitude
     self.latitude  = msg.latitude
     self.altitude  = msg.altitude
-    print "Received GPS location [%f %f %f]" %(msg.longitude, msg.latitude, msg.altitude)
+    #print "Received GPS location [%f %f %f]" %(msg.longitude, msg.latitude, msg.altitude)
 
   def get_pos(self):
     #print "Get location issued: location is now (%f|%f|%f)" %(self.longitude, self.latitude, self.altitude)
@@ -306,18 +307,18 @@ class pos_ref_subscriber:
 class vel_ref_publisher:
   def __init__(self, pub_name):
     self.pub_name = pub_name
-    self.linear = np.zeros((3))
+    self.linear = Vector3(0, 0, 0)
+    self.angular = Vector3(0, 0, 0)
     self.pub = rospy.Publisher(self.pub_name, Twist, queue_size=1)
 
-  def set_pos(self, vel):
-    self.linear[0] = vel[0]
-    self.linear[1] = vel[1]
-    self.linear[2] = vel[2]
+  def set_vel(self, vel):
+    self.linear = Vector3(vel[0], vel[1], vel[2])
     #print "Drone %d objective publisher: objective is now (%f|%f|%f)" %(self.id, self.longitude, self.latitude, self.altitude)
 
-  def pub_pos(self):
+  def pub_vel(self):
     msg = Twist()
     msg.linear = self.linear
+    msg.angular = self.angular
     self.pub.publish(msg)
 
 
