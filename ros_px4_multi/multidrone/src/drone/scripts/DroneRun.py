@@ -52,23 +52,15 @@ if __name__ == "__main__":
   #xRange = {'min':47.3975, 'max':47.3980}
   #yRange = {'max':8.5455, 'min':8.545}
   #zRange = {'max':590, 'min':550}
+
+  bounds = {}
+  bounds['xMax'] = FAKE_GPS_ORIGIN_X + 0.0003
+  bounds['xMin'] = FAKE_GPS_ORIGIN_X - 0.0003
+  bounds['yMax'] = FAKE_GPS_ORIGIN_Y + 0.0003
+  bounds['yMin'] = FAKE_GPS_ORIGIN_Y - 0.0003
+  bounds['zMax'] = FAKE_GPS_ORIGIN_Z + 200
+  bounds['zMin'] = FAKE_GPS_ORIGIN_Z + 150
   
-  xRange = {'min':FAKE_GPS_ORIGIN_X - 0.0003, 'max':FAKE_GPS_ORIGIN_X + 0.0003}
-  yRange = {'min':FAKE_GPS_ORIGIN_Y - 0.0003, 'max':FAKE_GPS_ORIGIN_Y + 0.0003}
-  zRange = {'min':FAKE_GPS_ORIGIN_Z + 150, 'max':FAKE_GPS_ORIGIN_Z + 200}
-  
-  xStart = {}
-  yStart = {}
-  zStart = {}
-
-  xStart[1] = -35.36326
-  yStart[1] = 149.16523
-  zStart[1] = 635
-
-  xStart[2] = -35.36332
-  yStart[2] = 149.16523
-  zStart[2] = 635
-
   #~10000km per 90 degrees -> 111111.11m per degree
   print "[main] Drone Test Script Start!"
 
@@ -83,7 +75,7 @@ if __name__ == "__main__":
 
   drones = []
   for i in range(numDrones):
-    drones.append(DroneModule.Drone(xRange, yRange, zRange, resolutions, i + 1))
+    drones.append(DroneModule.drone(bounds, i + 1))
     print "[main] Drone id %d created" %i
   print "[main] Drones created"
 

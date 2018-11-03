@@ -53,6 +53,11 @@ void land_signal_callback(const std_msgs::Bool::ConstPtr& msg) {
   land_signal = *msg;
 }
 
+geometry_msgs::Twist vel_target_python;
+void vel_target_callback(const geometry_msgs::Twist::ConstPtr& msg) {
+  vel_target_python = *msg;
+}
+
 //[Global vars]----------------------------------------------------------------
 
 
@@ -68,6 +73,7 @@ geometry_msgs::TwistStamped vel_target_stamped;
 ros::Subscriber sub_state;
 ros::Subscriber sub_obj;
 ros::Subscriber sub_gps;
+ros::Subscriber sub_vel_ref;
 //ros::Subscriber sub_signal;
 
 // Publishers
@@ -80,6 +86,30 @@ ros::ServiceClient arming_client;
 ros::ServiceClient set_mode_client;
 //ros::ServiceClient takeoff_client;
 ros::ServiceClient landing_client;
+
+/*-----------------------------------------------------------------------------
+  Routine Name: pub_lin_vel
+  File:         navi.cpp
+  
+  Description: Publishes linear velocity vector
+  
+  Parameter Descriptions:
+  name               description
+  ------------------ -----------------------------------------------
+  vel_lin            vector representing velocities for x, y, z
+-----------------------------------------------------------------------------*/
+void pub_lin_vel(geometry_msgs::Twist vel_target) {
+  geometry_msgs::Vector3 vel_lin_target;
+  geometry_msgs::Vector3 vel_ang_target;
+
+  vel_target_stamped.header.stamp = ros::Time::now();
+  vel_target_stamped.header.seq++;
+
+  vel_target_stamped.twist = vel_target;
+
+  pub_vel.publish(vel_target_stamped);
+}
+
 
 /*-----------------------------------------------------------------------------
   Routine Name: pub_lin_vel
@@ -170,8 +200,8 @@ int main(int argc, char **argv) {
   }
 
   // Create names under namespace for individual drone
-  std::string nodename       = "px4_navi_" + std::to_string(i);
-  std::string group_ns       = "uav" + std::to_string(i);
+  std::string nodename        = "px4_navi_" + std::to_string(i);
+  std::string group_ns        = "uav" + std::to_string(i);
 
   // Create ros node
   ros::init(argc, argv, nodename);
@@ -179,24 +209,25 @@ int main(int argc, char **argv) {
   ros::Rate rate(20.0);
 
   // Subscriber topic names
-  std::string sub_state_str  = group_ns + "/mavros/state";
-  std::string sub_obj_str    = group_ns + "/Obj";
-  std::string sub_gps_str    = group_ns + "/mavros/global_position/global";
+  std::string sub_state_str   = group_ns + "/mavros/state";
+  std::string sub_vel_ref_str = group_ns + "/vel_ref";
+  std::string sub_gps_str     = group_ns + "/mavros/global_position/global";
 
   // Publisher topic names
-  std::string pub_pos_str    = group_ns + "/mavros/setpoint_position/global";
-  std::string pub_vel_str    = group_ns + "/mavros/setpoint_velocity/cmd_vel";
+  std::string pub_pos_str     = group_ns + "/mavros/setpoint_position/global";
+  std::string pub_vel_str     = group_ns + "/mavros/setpoint_velocity/cmd_vel";
   //std::string ang_vel_pub_s = groupNS + "/mavros/setpoint_attitude/cmd_vel";
 
   // Client topic names
-  std::string cli_arming_str = group_ns + "/mavros/cmd/arming";
-  std::string cli_mode_str   = group_ns + "/mavros/set_mode";
-  std::string cli_land_str   = group_ns + "/mavros/cmd/land";
+  std::string cli_arming_str  = group_ns + "/mavros/cmd/arming";
+  std::string cli_mode_str    = group_ns + "/mavros/set_mode";
+  std::string cli_land_str    = group_ns + "/mavros/cmd/land";
 
   // Subscribers
   sub_state = nh.subscribe<mavros_msgs::State>(sub_state_str, 10, state_callback);
-  sub_obj = nh.subscribe<sensor_msgs::NavSatFix>(sub_obj_str, 10, target_callback); //geo msg
+  //sub_obj = nh.subscribe<sensor_msgs::NavSatFix>(sub_obj_str, 10, target_callback); //geo msg
   sub_gps = nh.subscribe<sensor_msgs::NavSatFix>(sub_gps_str, 10, gps_callback); //geo msg
+  sub_vel_ref = nh.subscribe<geometry_msgs::Twist>(sub_vel_ref_str, 10, vel_target_callback);
   //sub_signal = nh.subscribe<std_msgs::Bool>("land_sig", 10, land_signal_callback);
 
   // Publishers
@@ -305,7 +336,7 @@ int main(int argc, char **argv) {
     }
 
     if(alt_reached) {
-      pub_lin_vel(10, 0, 0);
+      pub_lin_vel(vel_target_python);
     }
     else {
       pub_lin_vel(0, 0, 5);

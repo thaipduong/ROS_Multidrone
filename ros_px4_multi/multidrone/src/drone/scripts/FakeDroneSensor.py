@@ -46,7 +46,7 @@ class DroneGPSSubscriber:
         return {'longitude':self.longitude,'latitude':self.latitude,'altitude':self.altitude}
 
 class FakeDroneSensor:
-    def __init__(self, xRange, yRange, zRange, resolutions, randFlag, id, numEvents, detectionRange):
+    def __init__(self, bounds, resolutions, randFlag, id, numEvents, detectionRange):
         # Calculate explorable area grid bounds in terms of GPS locations based on input exploration area size
         self.id = id
         self.detectRange = detectionRange
@@ -60,12 +60,12 @@ class FakeDroneSensor:
         self.x = GPSLoc['latitude']
         self.y = GPSLoc['longitude']
         self.z = GPSLoc['altitude']
-        self.xMax = xRange['max']
-        self.xMin = xRange['min']
-        self.yMax = yRange['max']
-        self.yMin = yRange['min']
-        self.zMax = zRange['max']
-        self.zMin = zRange['min']
+        self.xMax = bounds['xMax']
+        self.xMin = bounds['xMin']
+        self.yMax = bounds['yMax']
+        self.yMin = bounds['yMin']
+        self.zMax = bounds['zMax']
+        self.zMin = bounds['zMin']
         self.bounds = {'xMax':self.xMax,'xMin':self.xMin,'yMax':self.yMax,'yMin':self.yMin,'zMin':self.zMin,'zMax':self.zMax}
         self.resolutions = resolutions
         self.sensePub = GasSensorPublisher(id)
