@@ -27,9 +27,12 @@ First time setup:
      cd ROS_Sim/ros_px4_multi/testnavi
      catkin_make
      ```
+4. Install PX4 firmware
+    - Check that under ~/src/Firmware, the PX4 firmware repository exists, which can be found here: https://github.com/PX4/Firmware
+    - This is referenced in generate_model.pl (can change location here if PX4 is installed somewhere else) which is used later to generate launch file with n number of drones.
      
 Running simulation:
-Generate the appropriate number of drone models for use in the simulation and then start the simulation using bash script.
+Generate the appropriate number of drone models for use in the simulation and then start the simulation using bash script. Port number indicates starting port in the range [starting_port, starting_port + 4 * number_of_drones] which must be a free block of ports that can be allocated to mavros->ROS/Gazebo interactions. Something like 9000 or 10000 usually works well here.
 ```
 cd ROS_Sim/scripts
 ./generate_model.pl <number of drone> <starting port>
