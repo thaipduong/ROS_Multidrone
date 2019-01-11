@@ -1,4 +1,4 @@
-export ROS_SIM_DIR=~/projects/ROS_Sim
+export ROS_SIM_DIR=~/projects/ROS_Multidrone
 export FIRMWARE_DIR=~/src/Firmware
 export NUM_DRONES=$1
 

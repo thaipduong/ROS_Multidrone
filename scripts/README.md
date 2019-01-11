@@ -53,7 +53,7 @@ launch_sim.sh delegates to individual scripts for starting gazebo (start_gazebo.
      ```
 
 Changing drone parameters:
-- Associated script: ./generate_model.pl [num_drones] [starting_port]
+- Associated script: python3 gen_drones.py <num_drones> [starting_port]
 - Adding/modifying drone models is taken care of by generate_model.pl, and the following are for reference for future changes to drone parameters.
 
 Modifying drones:

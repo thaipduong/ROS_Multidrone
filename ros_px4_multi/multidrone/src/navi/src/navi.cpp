@@ -149,6 +149,9 @@ double range_calc(float lat, float lon, float alt, float t_lat, float t_lon, flo
   argv               argument vector
 -----------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
+  
+  std::cout << "[NAVI] Starting" << std::endl;
+  
   int num_drones = std::stoi(argv[1]);
   
   //const char command []= "rosrun drone DroneRun.py %put drone count% &";
@@ -216,11 +219,15 @@ int main(int argc, char **argv) {
   /*TODO check battery status NOT IMPLEMENTED*/
   //battery state msg in mavros
   
+  std::cout << "[NAVI] Waiting for ROS node to start" << std::endl;
+
   // Wait until ROS node spins up
   while(ros::ok() && !current_state.connected){
     ros::spinOnce();
     rate.sleep();
   }
+
+  std::cout << "[NAVI] ROS node running" << std::endl;
  
   double alt_home = pos_gps.altitude;
   

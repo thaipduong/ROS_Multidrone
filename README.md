@@ -29,15 +29,25 @@ First time setup:
      ```
 4. Install PX4 firmware
     - Check that under ~/src/Firmware, the PX4 firmware repository exists, which can be found here: https://github.com/PX4/Firmware
-    - This is referenced in generate_model.pl (can change location here if PX4 is installed somewhere else) which is used later to generate launch file with n number of drones.
-     
+    - This is referenced in gen_models.py (can change location here if PX4 is installed somewhere else) which is used later to generate launch file with n number of drones.
+    ```
+    cd ~/src/Firmware
+    git checkout stable
+    make posix_sitl_default
+    make posix_sitl_default sitl_gazebo
+    ```
+    - After investigating more recent changes to PX4 Firmware, it looks like it is buggy on the port assignments. They are moving towards a single, unified vehicle startup model, which would require modifications to Firmware/ROMFS/px4fmu_common/init.d-posix/rcS to properly assign ports.
+
 Running simulation:
-Generate the appropriate number of drone models for use in the simulation and then start the simulation using bash script. Port number indicates starting port in the range [starting_port, starting_port + 4 * number_of_drones] which must be a free block of ports that can be allocated to mavros->ROS/Gazebo interactions. Something like 9000 or 10000 usually works well here.
+- First, ensure paths in launch_sim.sh and gen_models.py are set up properly.
+  - This is mostly just where you installed ROS_Multidrone and PX4.
+
+- Generate the appropriate number of drone models for use in the simulation and then start the simulation using bash script. Port number indicates starting port in the range [starting_port, starting_port + 4 * number_of_drones] which must be a free block of ports that can be allocated to mavros->ROS/Gazebo interactions. Something like 9000 or 10000 usually works well here.
 ```
 cd ROS_Sim/scripts
-./generate_model.pl <number of drone> <starting port>
+python3 gen_models.py <num_drones> [starting_port]
 chmod +x start_sim.sh
-./launch_sim.sh [num_drones]
+./launch_sim.sh <num_drones>
 ```
 More about these scripts can be found under scripts/README.md
 
