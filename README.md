@@ -46,7 +46,7 @@ Running simulation:
 ```
 cd ROS_Sim/scripts
 python3 gen_models.py <num_drones> [starting_port]
-chmod +x start_sim.sh
+chmod +x launch_sim.sh
 ./launch_sim.sh <num_drones>
 ```
 More about these scripts can be found under scripts/README.md
