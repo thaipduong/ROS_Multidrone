@@ -6,7 +6,7 @@
                                                          Date:   Sep 04 2018
                               ROS PX4 Multi-drone
 
-  File Name:      navi.cpp
+  File Name:      state_control.cpp
   Description:    Navigation controller for a variable number of drones. Acts
                   as interface between DroneModule.py and PX4/mavros. The
                   waypoints/velocities published here are what drones follow.
@@ -83,7 +83,7 @@ ros::ServiceClient landing_client;
 
 /*-----------------------------------------------------------------------------
   Routine Name: pub_lin_vel
-  File:         navi.cpp
+  File:         state_control.cpp
   
   Description: Publishes linear velocity vector
   
@@ -120,7 +120,7 @@ void pub_lin_vel(double x, double y, double z) {
 
 /*-----------------------------------------------------------------------------
   Routine Name: range_calc
-  File:         navi.cpp
+  File:         state_control.cpp
   
   Description: Calculates distance between two gps coordinates in meters
   
@@ -137,7 +137,7 @@ double range_calc(float lat, float lon, float alt, float t_lat, float t_lon, flo
 
 /*-----------------------------------------------------------------------------
   Routine Name: main
-  File:         navi.cpp
+  File:         state_control.cpp
   
   Description: Multi-process program to spin up ROS nodes and control them as
                a swarm.
@@ -150,7 +150,7 @@ double range_calc(float lat, float lon, float alt, float t_lat, float t_lon, flo
 -----------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
   
-  std::cout << "[NAVI] Starting" << std::endl;
+  std::cout << "[CON] Starting" << std::endl;
   
   int num_drones = std::stoi(argv[1]);
   
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
   }
 
   // Create names under namespace for individual drone
-  std::string nodename       = "px4_navi_" + std::to_string(i);
+  std::string nodename       = "px4_state_" + std::to_string(i);
   std::string group_ns       = "uav" + std::to_string(i);
 
   // Create ros node
@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
   /*TODO check battery status NOT IMPLEMENTED*/
   //battery state msg in mavros
   
-  std::cout << "[NAVI] Waiting for ROS node to start" << std::endl;
+  std::cout << "[CON] Waiting for ROS node to start" << std::endl;
 
   // Wait until ROS node spins up
   while(ros::ok() && !current_state.connected){
@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
     rate.sleep();
   }
 
-  std::cout << "[NAVI] ROS node running" << std::endl;
+  std::cout << "[CON] ROS node running" << std::endl;
  
   double alt_home = pos_gps.altitude;
   
