@@ -18,5 +18,5 @@ fi
 source /opt/ros/kinetic/setup.bash
 source ~/catkin_ws/devel/setup.bash
 
-source ${ROS_SIM_DIR}/multi_uav_quad/devel/setup.bash
+source ${ROS_SIM_DIR}/devel/setup.bash
 rosrun state_control state_control ${NUM_DRONES}

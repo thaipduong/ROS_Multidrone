@@ -13,12 +13,14 @@ if [ -z "$ROS_SIM_DIR" ];
 then
 	echo "No ROS_Sim base dir specified"
 	echo "usage: ./launch_sim.sh [NUM_DRONES]"
+	exit 1
 fi
 
 if [ -z "$NUM_DRONES" ];
 then
 	echo "No number of drones specified"
 	echo "usage: ./launch_sim.sh [NUM_DRONES]"
+	exit 1
 fi
 
 echo "Num drones: ${NUM_DRONES}"

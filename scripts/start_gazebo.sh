@@ -13,7 +13,7 @@ then
 	exit 1
 fi
 
-source ${ROS_SIM_DIR}/multi_uav_quad/devel/setup.bash
+source ${ROS_SIM_DIR}/devel/setup.bash
 source ${FIRMWARE_DIR}/Tools/setup_gazebo.bash ${FIRMWARE_DIR} ${FIRMWARE_DIR}/build/posix_sitl_default
 export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:${FIRMWARE_DIR}
 export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:${FIRMWARE_DIR}/Tools/sitl_gazebo
