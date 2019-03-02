@@ -136,6 +136,19 @@ double range_calc(float lat, float lon, float alt, float t_lat, float t_lon, flo
 }
 
 /*-----------------------------------------------------------------------------
+  Routine Name: print_state
+  File:         state_control.cpp
+  
+  Description: prints state given from mavros
+-----------------------------------------------------------------------------*/
+void print_state(bool alt_reached) {
+  std::cout << current_state << std::endl;
+  std::cout << pos_gps << std::endl;
+  std::cout << "alt reached: " << alt_reached << std::endl;
+
+}
+
+/*-----------------------------------------------------------------------------
   Routine Name: main
   File:         state_control.cpp
   
@@ -239,13 +252,14 @@ int main(int argc, char **argv) {
   bool alt_reached = false;
   int debugger = 0;
   ros::Time last_request = ros::Time::now();
-  
+  ros::Time last_print = ros::Time::now();
+
   // Loop while ROS is online
   while(ros::ok()){
     //handle takeoff sequence
     if(current_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) {
       if(set_mode_client.call(mode_guided) && mode_guided.response.mode_sent) {
-        ROS_INFO("[debug] Offboard enabled");
+        ROS_INFO("[debug] ATTEMPT: Offboard");
       }
       last_request = ros::Time::now();
     }
@@ -257,12 +271,16 @@ int main(int argc, char **argv) {
         alt_home = pos_gps.altitude;
 
         if(arming_client.call(cmd_arm) && cmd_arm.response.success) {
-          ROS_INFO("[debug] Vehicle armed [%f %f %f]", pos_target.latitude, pos_target.longitude, pos_target.altitude);
+          ROS_INFO("[debug] ATTEMPT: Arm [%f %f %f]", pos_target.latitude, pos_target.longitude, pos_target.altitude);
         }
         last_request = ros::Time::now();
       }
     }
-
+    
+    if(ros::Time::now() - last_print > ros::Duration(3.0)) {
+      print_state(alt_reached);
+      last_print = ros::Time::now();
+    }
     /*TODO:Landing not implemented, though px4 auto returns home if setpoint stream is cut*/
     if(land_signal.data){
     
