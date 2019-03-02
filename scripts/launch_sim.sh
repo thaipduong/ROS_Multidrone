@@ -26,6 +26,6 @@ fi
 echo "Num drones: ${NUM_DRONES}"
 
 gnome-terminal -e 'bash -c "${ROS_SIM_DIR}/scripts/start_gazebo.sh ${ROS_SIM_DIR} ${FIRMWARE_DIR}; exec bash"' --geometry 80x24+800+0
-gnome-terminal -e 'bash -c "${ROS_SIM_DIR}/scripts/start_ros_nodes.sh ${ROS_SIM_DIR} ${NUM_DRONES}; exec bash"' --geometry 80x24+0+470
-gnome-terminal -e 'bash -c "${ROS_SIM_DIR}/scripts/start_drones.sh ${ROS_SIM_DIR} ${NUM_DRONES}; exec bash"' --geometry 80x24+800+470
+gnome-terminal -e 'bash -c "${ROS_SIM_DIR}/scripts/start_drones_cpp.sh ${ROS_SIM_DIR} sim ${NUM_DRONES}; exec bash"' --geometry 80x24+0+470
+gnome-terminal -e 'bash -c "${ROS_SIM_DIR}/scripts/start_drones_py.sh ${ROS_SIM_DIR} ${NUM_DRONES}; exec bash"' --geometry 80x24+800+470
 

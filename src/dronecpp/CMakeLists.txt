@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(state_control)
+project(dronecpp)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 #add_compile_options(-std=c++11)
@@ -120,9 +120,9 @@ include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
 )
-add_executable(state_control src/state_control.cpp)
-target_link_libraries(state_control ${catkin_LIBRARIES})
-add_dependencies(state_control ${catkin_EXPORTED_TARGETS})
+add_executable(dronecpp src/single_drone.cpp)
+target_link_libraries(dronecpp ${catkin_LIBRARIES})
+add_dependencies(dronecpp ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}

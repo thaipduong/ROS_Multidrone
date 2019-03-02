@@ -6,7 +6,7 @@
                                                          Date:   Sep 04 2018
                               ROS PX4 Multi-drone
 
-  File Name:      state_control.cpp
+  File Name:      single_drone.cpp
   Description:    Navigation controller for a variable number of drones. Acts
                   as interface between DroneModule.py and PX4/mavros. The
                   waypoints/velocities published here are what drones follow.
@@ -83,7 +83,7 @@ ros::ServiceClient landing_client;
 
 /*-----------------------------------------------------------------------------
   Routine Name: pub_lin_vel
-  File:         state_control.cpp
+  File:         single_drone.cpp
   
   Description: Publishes linear velocity vector
   
@@ -120,7 +120,7 @@ void pub_lin_vel(double x, double y, double z) {
 
 /*-----------------------------------------------------------------------------
   Routine Name: range_calc
-  File:         state_control.cpp
+  File:         single_drone.cpp
   
   Description: Calculates distance between two gps coordinates in meters
   
@@ -137,7 +137,7 @@ double range_calc(float lat, float lon, float alt, float t_lat, float t_lon, flo
 
 /*-----------------------------------------------------------------------------
   Routine Name: print_state
-  File:         state_control.cpp
+  File:         single_drone.cpp
   
   Description: prints state given from mavros
 -----------------------------------------------------------------------------*/
@@ -150,7 +150,7 @@ void print_state(bool alt_reached) {
 
 /*-----------------------------------------------------------------------------
   Routine Name: main
-  File:         state_control.cpp
+  File:         single_drone.cpp
   
   Description: Multi-process program to spin up ROS nodes and control them as
                a swarm.
@@ -165,13 +165,29 @@ int main(int argc, char **argv) {
   
   std::cout << "[ctrl] Starting" << std::endl;
   
-  int id = std::stoi(argv[1]);
-  
-  //const char command []= "rosrun drone DroneRun.py %put drone count% &";
-  //system(command);
-  //havn't tested this^^ yet but it can potentially make this the 
-  //only thing user need to manually execute
+  int id;
 
+  if(argc < 3) {
+    std::cerr << "Usage: rosrun uav_ctrl uav_ctrl [hardware|sim] [num_drones]" << std::endl;
+  }
+
+  if(argv[1] == "hardware") {
+    id = std::stoi(argv[2]);
+  }
+  else {
+    int num_drones = std::stoi(argv[2]);
+    //Spawn processes for each drone
+    int pid = -1;
+    for(id = 1; id < num_drones; id++){
+      pid = fork();
+      if(pid == -1) {
+        std::cerr << "Process spawning failed" << std::endl;
+      }
+      if(pid == 0) {
+        break;
+      }
+    }
+  }
   // Create names under namespace for individual drone
   std::string nodename       = "px4_state_" + std::to_string(id);
   std::string group_ns       = "uav" + std::to_string(id);
@@ -234,7 +250,7 @@ int main(int argc, char **argv) {
   // Set initial target position to 30 meters above home position
   pos_target.latitude  = pos_gps.latitude;
   pos_target.longitude = pos_gps.longitude;
-  pos_target.altitude  = pos_gps.altitude + 30;
+  pos_target.altitude  = pos_gps.altitude + 5;
 
   // Publish init target to stream so offboard doesn't shut down immediately
   for(int i = 100; ros::ok() && i > 0; --i){
@@ -249,6 +265,7 @@ int main(int argc, char **argv) {
   cmd_arm.request.value = true;
   cmd_takeoff.request.altitude = 15;
 
+  bool gps_init = false;
   bool alt_reached = false;
   int debugger = 0;
   ros::Time last_request = ros::Time::now();
@@ -267,11 +284,12 @@ int main(int argc, char **argv) {
       if(!current_state.armed && (ros::Time::now() - last_request > ros::Duration(5.0))) {
         pos_target.latitude  = pos_gps.latitude;
         pos_target.longitude = pos_gps.longitude;
-        pos_target.altitude  = pos_gps.altitude + 1;
+        pos_target.altitude  = pos_gps.altitude + 5;
         alt_home = pos_gps.altitude;
-
+        
         if(arming_client.call(cmd_arm) && cmd_arm.response.success) {
           ROS_INFO("[debug] ATTEMPT: Arm [%f %f %f]", pos_target.latitude, pos_target.longitude, pos_target.altitude);
+          gps_init = true;
         }
         last_request = ros::Time::now();
       }
@@ -300,7 +318,7 @@ int main(int argc, char **argv) {
     }
 
     //if at target, set new target waypoint
-    if(pos_gps.altitude > pos_target.altitude){
+    if(gps_init && pos_gps.altitude > pos_target.altitude){
       //target_.latitude=nextT_.latitude;
       //target_.longitude=nextT_.longitude;
       //target_.altitude=nextT_.altitude;
@@ -310,10 +328,10 @@ int main(int argc, char **argv) {
     }
 
     if(alt_reached) {
-      pub_lin_vel(5, 0, 0);
+      pub_lin_vel(0, 0, -2.5);
     }
     else {
-      pub_lin_vel(-2.5, 0, 0);
+      pub_lin_vel(0, 0, 5);
       //pub_pos.publish(pos_target);
     }
     //ang_vel_pub.publish(target_vel);

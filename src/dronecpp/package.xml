@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>state_control</name>
+  <name>dronecpp</name>
   <version>0.0.0</version>
   <description>ROS_Multidrone state controller</description>
 

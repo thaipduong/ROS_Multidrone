@@ -19,4 +19,4 @@ source /opt/ros/kinetic/setup.bash
 source ~/catkin_ws/devel/setup.bash
 
 source ${ROS_SIM_DIR}/devel/setup.bash
-rosrun state_control state_control ${NUM_DRONES}
+python ${ROS_SIM_DIR}/src/dronepy/src/DroneRun.py ${NUM_DRONES}
