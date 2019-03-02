@@ -1,2 +1,0 @@
-This package acts as an interface between the high-level commands of each drone and the corresponding PX4/mavros controllers. This ensures that the flight controllers are published to frequently enough to keep them alive, while handling basic flight planning logic (takeoff/landing/state).
-
