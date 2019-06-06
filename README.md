@@ -40,9 +40,11 @@ chmod +x launch_sim.sh
 
 ## Architecture
 On NAVIO2 + Raspberry Pi hardware, the connections would be set up according to the following:
+
 ![Hardware arch](ROS_Multidrone_hardware.png)
 
 In software, connections are as follows:
+
 ![Software arch](ROS_Multidrone_software.png)
 
 ## More about simulation scripts:
