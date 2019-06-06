@@ -24,7 +24,7 @@ _________________________________________________________________
      ```
      git clone https://github.com/UCSD-SEELab/ROS_Multidrone.git
      ```
-Running simulation:
+## Running simulation:
 1. Ensure paths in launch_sim.sh and gen_models.py are set up properly.
   - ROS_SIM_DIR should point to where ROS_Multidrone was cloned: ie. ~/ROS_Multidrone
   - FIRMWARE_DIR should point to where PX4's firmware was cloned: ie. ~/Firmware
@@ -38,7 +38,15 @@ chmod +x launch_sim.sh
 - When exiting, ctrl+c the gazebo terminal on top right and wait for it to clean up before closing terminal
 - The Python and C++ controllers can be closed at any time without leaving artifacts behind.
 
-More about these scripts can be found under scripts/README.md
+## Architecture
+On NAVIO2 + Raspberry Pi hardware, the connections would be set up according to the following:
+![Hardware arch](ROS_Multidrone_hardware.png)
+
+In software, connections are as follows:
+![Software arch](ROS_Multidrone_software.png)
+
+## More about simulation scripts:
+can be found under scripts/README.md
 
 - Port number indicates starting port in the range [starting_port, starting_port + 4 * number_of_drones] which must be a free block of ports that can be allocated to mavros->ROS/Gazebo interactions. Something like 9000 or 10000 usually works well here.
 - Note for future: After investigating more recent changes to PX4 Firmware, it looks like it is buggy on the port assignments. They are moving towards a single, unified vehicle startup model, which would require modifications to Firmware/ROMFS/px4fmu_common/init.d-posix/rcS to properly assign ports.
