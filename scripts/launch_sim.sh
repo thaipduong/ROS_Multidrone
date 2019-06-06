@@ -7,30 +7,38 @@ export FIRMWARE_DIR=~/src/Firmware
 #tests for input
 if [ -z "$NUM_DRONES" ];
 then
-	echo "No number of drones specified"
-	echo "usage: ./launch_sim.sh [NUM_DRONES]"
+	echo "[launch] No number of drones specified"
+	echo "[launch] usage: ./launch_sim.sh [NUM_DRONES]"
 	exit 1
 fi
 
 #tests for path correctness
 if [ ! -d "$FIRMWARE_DIR" ];
 then
-	echo "PX4 Firmware path does not exist. Correct in launch_sim.sh:"
-	echo "Path: ${FIRMWARE_DIR}"
+	echo "[launch] PX4 Firmware path does not exist. Correct in launch_sim.sh:"
+	echo "[launch] Path: ${FIRMWARE_DIR}"
 	exit 1
 fi
 
 if [ ! -d "$ROS_SIM_DIR" ];
 then
-	echo "ROS Sim path does not exist. Correct in launch_sim.sh:"
-	echo "Path: ${ROS_SIM_DIR}"
+	echo "[launch] ROS Sim path does not exist. Correct in launch_sim.sh:"
+	echo "[launch] Path: ${ROS_SIM_DIR}"
 	exit 1
 fi
 
 echo "[launch] Building project"
 source /opt/ros/kinetic/setup.bash
+source ~/catkin_ws/devel/setup.bash
 cd $ROS_SIM_DIR
 catkin_make
+
+if [ ! $? -eq 0 ];
+then
+	echo "[launch] Build failed, exiting."
+	exit 1
+fi
+
 
 echo "[launch] Num drones: ${NUM_DRONES}"
 echo "[launch] Firmware: ${FIRMWARE_DIR}"
