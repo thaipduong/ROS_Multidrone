@@ -1,14 +1,8 @@
-# ROS_Sim-Ubuntu 16.04 Xenial
-This is a ROS simulation framework for use in developing drone swarm applications. It is capable of generating multiple copies of drone models, which can be controlled separately and visualized flying in Gazebo. Below are instructions for setting this up as well as running the modules.
+# ROS_Multidrone Controller - Ubuntu 16.04
+This is a ROS package for use in developing multi-quadcopter applications. It is capable of generating multiple flight controller instances, which can be simulated using SITL in Gazebo (master or michael-vel branches) or run on hardware (hardware branch). Below are instructions for setting this up as well as running the modules.
 _________________________________________________________________
 
-# ROS PX4 Multi-Drone Simulation
-After building packages, always ensure terminal has env variables set up so ROS can find this package!
-```
-source ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash
-```
-
-First time setup:
+## First time setup:
 1. Run ubuntu_sim_ros_gazebo.sh from https://dev.px4.io/en/setup/dev_env_linux_ubuntu.html
      - This installs ROS along with the tools (gazebo, mavros, px4 sitl) necessary for running/visualizing drones.
      ```
@@ -16,45 +10,49 @@ First time setup:
      chmod +x ubuntu_sim_ros_gazebo.sh
      ./ubuntu_sim_ros_gazebo.sh
      ```
-2. Clone this repo to your machine
-     ```
-     git clone https://github.com/UCSD-SEELab/ROS_Sim.git
-     ```
-3. Build packages
-     - Open terminal, but DO NOT SOURCE devel/setup.bash if it already exists!
-     - Rebuilding packages is necessary any time the source is changed.
-     ```
-     cd ROS_Sim/ros_px4_multi/testnavi
-     catkin_make
-     ```
-4. Install PX4 firmware
+2. Install PX4 firmware
     - Check that under ~/src/Firmware, the PX4 firmware repository exists, which can be found here: https://github.com/PX4/Firmware
     - This is referenced in gen_models.py (can change location here if PX4 is installed somewhere else) which is used later to generate launch file with n number of drones.
     ```
-    cd ~/src/Firmware
+    git clone https://github.com/PX4/Firmware.git
+    cd Firmware
     git checkout stable
     make posix_sitl_default
     make posix_sitl_default sitl_gazebo
     ```
-    - After investigating more recent changes to PX4 Firmware, it looks like it is buggy on the port assignments. They are moving towards a single, unified vehicle startup model, which would require modifications to Firmware/ROMFS/px4fmu_common/init.d-posix/rcS to properly assign ports.
-
+3. Clone this repo to your machine
+     ```
+     git clone https://github.com/UCSD-SEELab/ROS_Multidrone.git
+     ```
 Running simulation:
-- First, ensure paths in launch_sim.sh and gen_models.py are set up properly.
-  - This is mostly just where you installed ROS_Multidrone and PX4.
+1. Ensure paths in launch_sim.sh and gen_models.py are set up properly.
+  - ROS_SIM_DIR should point to where ROS_Multidrone was cloned: ie. ~/ROS_Multidrone
+  - FIRMWARE_DIR should point to where PX4's firmware was cloned: ie. ~/Firmware
 
-- Generate the appropriate number of drone models for use in the simulation and then start the simulation using bash script. Port number indicates starting port in the range [starting_port, starting_port + 4 * number_of_drones] which must be a free block of ports that can be allocated to mavros->ROS/Gazebo interactions. Something like 9000 or 10000 usually works well here.
+2. Run launch_sim to build project, generate models, and start ROS/Gazebo/PX4. 
 ```
-cd ROS_Sim/scripts
-python3 gen_models.py <num_drones> [starting_port]
+cd ROS_Multidrone/scripts
 chmod +x launch_sim.sh
 ./launch_sim.sh <num_drones>
 ```
+- When exiting, ctrl+c the gazebo terminal on top right and wait for it to clean up before closing terminal
+- The Python and C++ controllers can be closed at any time without leaving artifacts behind.
+
 More about these scripts can be found under scripts/README.md
 
+- Port number indicates starting port in the range [starting_port, starting_port + 4 * number_of_drones] which must be a free block of ports that can be allocated to mavros->ROS/Gazebo interactions. Something like 9000 or 10000 usually works well here.
+- Note for future: After investigating more recent changes to PX4 Firmware, it looks like it is buggy on the port assignments. They are moving towards a single, unified vehicle startup model, which would require modifications to Firmware/ROMFS/px4fmu_common/init.d-posix/rcS to properly assign ports.
 ______________________________________________________________________________
 # ROS MSG Parameters [Based on PX4 ver]
 
-Topics
+When running simulation, it is possible to tap into ROS topics to see what is happening in the system:
+```
+rostopic list
+rostopic echo <topic_name>
+(ctrl+c to exit)
+```
+
+ROS Topics
 1. mavros/state - tells current flight mode of the drone [https://dev.px4.io/en/concept/flight_modes.html]
 2. droneObj - custom topic that tells drone the next objective in LLA format
 3. mavros/global_position/global - GPS information

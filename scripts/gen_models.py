@@ -13,7 +13,6 @@ import os
 '''[Global vars]------------------------------------------------------------'''
 START_PORT_DEFAULT = 9000
 
-PX4_BASE_DIR = os.path.expanduser("~") + "/src/Firmware"
 MODEL_FILE_PREFIX = "iris_"
 
 #flight controller params
