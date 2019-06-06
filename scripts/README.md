@@ -1,12 +1,35 @@
-What these scripts do:
-launch_sim.sh takes in number of drones as cmdline parameter and start the individual components of the simulation (launch gazebo, start ros nodes, and have drones communicate between ROS and Gazebo).
+For convenience, launch_sim.sh handles all aspect of starting simulation.
+Usage:
+```
+launch_sim.sh [num_drones]
+```
+- Num drones is the number of drones that will run in the simulation. Each currently have identical flight controllers, but the models are instantiated in different locations.
 
-launch_sim.sh delegates to individual scripts for starting gazebo (start_gazebo.sh) and running the drones separately (start_ros_nodes.sh and start_drones.sh).
-1. Launch gazebo simulation (https://dev.px4.io/en/simulation/ros_interface.html)
-     - Associated script under ROS_Sim/scripts, run with ./start_gazebo.sh [firmware_location]
-     
+launch_sim.sh does the following:
+1. Builds the project using catkin_make under root dir:
+     ```
+     source /opt/ros/kinetic/setup.bash
+     cd ROS_Multidrone
+     catkin_make
+     ```
+1. Generates model files and flight controllers
+     - Associated script under ROS_Multidrone/scripts/gen_models.py.
+     Usage:
+     ```
+     python3 gen_models.py [num_drones] [firmware_dir] [starting port]
+     ```
      This script does the following:
-     - After opening terminal, ensure ROS env variables are set up. this includes the px4 Firmware directory
+     - Generate a set of launch files for ROS so that all drones run under a separate name space and their topics are published properly.
+     - Create a set of individual flight controllers for each drone in simulation, with unique port bindings
+
+2. Launch gazebo simulation (https://dev.px4.io/en/simulation/ros_interface.html)
+     - Associated script under ROS_Multidrone/scripts/start_gazebo.sh
+     Usage:
+     ```
+     ./start_gazebo.sh [firmware_location]
+     ```
+     This script does the following:
+     - After opening terminal, ensure ROS env variables are set up. This includes the px4 Firmware directory
      ```
      source Tools/setup_gazebo.bash $(pwd) $(pwd)/build/posix_sitl_default
      export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd):$(pwd)/Tools/sitl_gazebo
@@ -16,46 +39,34 @@ launch_sim.sh delegates to individual scripts for starting gazebo (start_gazebo.
      
      - Starting position of the drones can be changed in the launch file (generate_model.pl also controls this)
      ```
-     /src/Firmware/launch/multi_uav_mavros_sitl.launch
+     .../Firmware/launch/multi_uav_mavros_sitl.launch
      ```     
 2. Run drones
-     In a new terminal:
-     - Run scripts (ros_sim_dir is where ROS_Sim is cloned, including ROS_Sim directory name. ie: ~/projects/ROS_Sim)
+     In a new terminal, start the cpp controllers:
      ```
-     cd ROS_Sim/scripts
-     ./start_ros_nodes.sh [ros_sim_dir]
+     ROS_Multidrone/scripts/start_drones_cpp.sh [ros_sim_dir] [num_drones]
+     ```
      
-     in new terminal:
-     cd ROS_Sim/scripts
-     ./start_drones.sh [ros_sim_dir]
+     In a new terminal, start the python controllers:
+     ```
+     ROS_Multidrone/scripts/start_drones_py.sh [ros_sim_dir] [num_drones]
      ```
      
      These scripts do the following:
-     - Set up environment variables so ROS can find this repo's packages
+     - Set up environment variables so ROS can find this repo's packages. devel/setup.bash is generated at compile time using catkin_make
      ```
-     source ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash
+     source ROS_Multidrone/devel/setup.bash
      ```
      
      - Spawns ROS nodes that send mavlink messages
-     ```
-     cd ROS_Sim/ros_px4_multi/testnavi/src/drone/scripts
-     rosrun drone DroneRun.py <drone count>
-     ```
-    
-     - In a different terminal, set up env variables so ROS can find this repo's packages
-     ```
-     source ROS_Sim/ros_px4_multi/testnavi/devel/setup.bash
-     ```
-     
-     - Have nodes start communicating with gazebo simulator
-     ```
-     rosrun navi navi <drone count>
-     ```
+     - drones_cpp handles lower-level flight controller logic like managing takeoff/landing/state and can choose whether the python module delegates waypoints to it.
+     - the python file can be easier to work with, but is slower with publishing at high rates (required for flight controller to stay active)
 
 Changing drone parameters:
-- Associated script: python3 gen_drones.py <num_drones> [starting_port]
-- Adding/modifying drone models is taken care of by generate_model.pl, and the following are for reference for future changes to drone parameters.
+- Associated script: python3 gen_drones.py <num_drones> [firmware_dir] [starting_port]
 
+
+OLDER NOTES ABOUT FLIGHT CONTROLLER PARAM GENERATION:
 Modifying drones:
 - Everything in src is gazebo code
 ```

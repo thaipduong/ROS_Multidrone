@@ -1,10 +1,10 @@
 '''*-----------------------------------------------------------------------*---
                                                          Author: Jason Ma
                                                          Date  : Jan 10 2019
-                                      TODO
+                                  ROS_Multidrone
 
   File Name  : gen_models.py
-  Description: TODO
+  Description: Generates model files for Gazebo simulation.
 ---*-----------------------------------------------------------------------*'''
 
 import sys
@@ -16,6 +16,7 @@ START_PORT_DEFAULT = 9000
 PX4_BASE_DIR = os.path.expanduser("~") + "/src/Firmware"
 MODEL_FILE_PREFIX = "iris_"
 
+#flight controller params
 IRIS_PARAMS_STR = """
 uorb start
 param load
@@ -99,6 +100,7 @@ logger start -e -t
 mavlink boot_complete
 replay trystart""" # % (num_drones, port, port+1, port+2, port+3, port+1, port+1, port+1, port+1, port+1, port+1, port+1, port+1, port+1, port+1)
 
+#from px4's firmware launch files
 LAUNCH_BASE_STR = """<?xml version="1.0"?>
 <launch>
 
@@ -130,6 +132,7 @@ LAUNCH_BASE_STR = """<?xml version="1.0"?>
     </include>
 """
 
+#individual drone entries
 LAUNCH_GROUP_STR = """    <group ns="uav%d">
         <arg name="fcu_url" default="udp://:%d@localhost:%d"/>
         <arg name="gcs_url" value=""/>
@@ -162,46 +165,73 @@ LAUNCH_GROUP_STR = """    <group ns="uav%d">
     </group>
 """
 
-'''[TODO]----------------------------------------------------------------------
-  TODO
+'''[main]----------------------------------------------------------------------
+  Parses cmd line input, fills in params
 ----------------------------------------------------------------------------'''
 def main():
 
-  print("argc:", len(sys.argv))
-  
-  if len(sys.argv) < 2:
-    print("usage: python3 gen_models.py [num_drones] [starting_port=9000]")
+  if len(sys.argv) < 3:
+    print("usage: python3 gen_models.py [num_drones] [firmware_dir] [starting_port=9000]")
     return
 
   #set num drones
   num_drones = int(sys.argv[1])
   
+  #set firmware dir
+  firmware_dir = os.path.expanduser("~") + "/src/Firmware"
+  if len(sys.argv) > 2:
+    firmware_dir = sys.argv[2]
+
   #set starting port
   starting_port = START_PORT_DEFAULT
-
-  if len(sys.argv) > 2:
-    starting_port = int(sys.argv[2])
+  if len(sys.argv) > 3:
+    starting_port = int(sys.argv[3])
   
   #write model files in Firmawre/posix-configs/SITL/init
   port = starting_port
   for i in range(1, num_drones + 1):
-    with open(PX4_BASE_DIR + "/posix-configs/SITL/init/ekf2/" + MODEL_FILE_PREFIX + str(i), 'w+') as f:
-      i_params = IRIS_PARAMS_STR % (i + 1, port, port+1, port+2, port+3, port+1, port+1, port+1, port+1, port+1, port+1, port+1, port+1, port+1, port+1)
+    with open(firmware_dir + "/posix-configs/SITL/init/ekf2/" + MODEL_FILE_PREFIX + str(i), 'w+') as f:
+      i_params = IRIS_PARAMS_STR % (
+          i + 1, 
+          port, 
+          port+1, 
+          port+2, 
+          port+3, 
+          port+1, 
+          port+1, 
+          port+1, 
+          port+1, 
+          port+1, 
+          port+1, 
+          port+1, 
+          port+1, 
+          port+1, 
+          port+1)
       f.write(i_params + "\n")
 
     port += 10
   
   #write launch file
-  with open(PX4_BASE_DIR + "/launch/multi_uav_mavros_sitl.launch", "w+") as f:
+  with open(firmware_dir + "/launch/multi_uav_mavros_sitl.launch", "w+") as f:
     f.write(LAUNCH_BASE_STR + "\n")
 
     port = starting_port
     for i in range(1, num_drones + 1):
-      group_str = LAUNCH_GROUP_STR % (i, port+3, port+2, i + 1, i, (i-1)/4, (i-1)%4, port)
+      group_str = LAUNCH_GROUP_STR % (
+          i, 
+          port+3, 
+          port+2, 
+          i + 1, 
+          i, 
+          (i-1)/4, 
+          (i-1)%4, 
+          port)
       f.write(group_str + "\n")
 
       port += 10
     f.write("</launch>\n")
+  
+  print("[gen_models] model generation complete")
 
 if __name__ == '__main__':
   main()
