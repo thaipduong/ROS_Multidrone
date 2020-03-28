@@ -1,24 +1,26 @@
-# ROS_Multidrone Controller - Ubuntu 16.04
+# ROS_Multidrone Controller - Ubuntu 18.04
 This is a ROS package for use in developing multi-quadcopter applications. It is capable of generating multiple flight controller instances, which can be simulated using SITL in Gazebo (master or michael-vel branches) or run on hardware (hardware branch). Below are instructions for setting this up as well as running the modules.
 _________________________________________________________________
 
 ## First time setup:
-1. Run ubuntu_sim_ros_gazebo.sh from https://dev.px4.io/en/setup/dev_env_linux_ubuntu.html
-     - This installs ROS along with the tools (gazebo, mavros, px4 sitl) necessary for running/visualizing drones.
+1. Install ROS Melodic under Ubuntu 18.04 http://wiki.ros.org/melodic/Installation/Ubuntu
+2. Run ubuntu_sim_ros_melodic.sh from https://dev.px4.io/v1.10/en/setup/dev_env_linux_ubuntu.html#rosgazebo
+     - This installs additional tools (mavros, px4 sitl) necessary for integration with px4 and running/visualizing drones.
      ```
-     wget https://raw.githubusercontent.com/PX4/Devguide/master/build_scripts/ubuntu_sim_ros_gazebo.sh
-     chmod +x ubuntu_sim_ros_gazebo.sh
-     ./ubuntu_sim_ros_gazebo.sh
+     wget https://raw.githubusercontent.com/PX4/Devguide/v1.10/build_scripts/ubuntu_sim_ros_melodic.sh
+     chmod +x ubuntu_sim_ros_melodic.sh
+     source ubuntu_sim_ros_melodic.sh
      ```
+     (Last updated 03-28-20)
 2. Install PX4 firmware
     - Check that under ~/src/Firmware, the PX4 firmware repository exists, which can be found here: https://github.com/PX4/Firmware
     - This is referenced in gen_models.py (can change location here if PX4 is installed somewhere else) which is used later to generate launch file with n number of drones.
     ```
-    git clone https://github.com/PX4/Firmware.git
+    git clone https://github.com/PX4/Firmware.git --recursive
     cd Firmware
-    git checkout stable
-    make posix_sitl_default
-    make posix_sitl_default sitl_gazebo
+    bash ./Tools/setup/ubuntu.sh
+    Restart machine here
+    make px4_sitl gazebo
     ```
 3. Clone this repo to your machine
      ```

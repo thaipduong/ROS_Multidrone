@@ -106,7 +106,7 @@ LAUNCH_BASE_STR = """<?xml version="1.0"?>
     <!-- MAVROS posix SITL environment launch script -->
 
     <arg name="debug" default="false"/>
-    <arg name="verbose" default="true"/>
+    <arg name="verbose" default="false"/>
     <arg name="paused" default="false"/>
 
     <arg name="est" default="ekf2"/>
@@ -116,9 +116,6 @@ LAUNCH_BASE_STR = """<?xml version="1.0"?>
     <arg name="headless" default="false"/>
     <arg name="gui" default="true"/>
     <arg name="ns" default="/"/>
-
-    <arg name="pluginlists_yaml" default="$(find mavros)/launch/px4_pluginlists.yaml" />
-    <arg name="config_yaml" default="$(find mavros)/launch/px4_config.yaml" />
 
     <!-- Load world -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -133,12 +130,11 @@ LAUNCH_BASE_STR = """<?xml version="1.0"?>
 
 #individual drone entries
 LAUNCH_GROUP_STR = """    <group ns="uav%d">
-        <arg name="fcu_url" default="udp://:%d@localhost:%d"/>
-        <arg name="gcs_url" value=""/>
-        <arg name="tgt_system" value="%d"/> 
-        <arg name="tgt_component" value="1"/>
+        <!-- MAVROS and vehicle configs -->
         <arg name="ID" value="%d"/>
+        <arg name="fcu_url" default="udp://:%d@localhost:%d"/>
 
+        <!-- PX4 SITL and vehicle spawn -->
         <include file="$(find px4)/launch/single_vehicle_spawn.launch">
             <arg name="x" value="%f"/>
             <arg name="y" value="%f"/>
@@ -147,19 +143,17 @@ LAUNCH_GROUP_STR = """    <group ns="uav%d">
             <arg name="P" value="0"/>
             <arg name="Y" value="0"/>
             <arg name="vehicle" value="$(arg vehicle)"/>
-            <arg name="rcS" value="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)_$(arg ID)"/>
             <arg name="mavlink_udp_port" value="%d"/>
+            <arg name="mavlink_tcp_port" value="%d"/>
             <arg name="ID" value="$(arg ID)"/>
         </include>
 
-        <include file="$(find mavros)/launch/node.launch">
-            <arg name="pluginlists_yaml" value="$(arg pluginlists_yaml)" />
-            <arg name="config_yaml" value="$(arg config_yaml)" />
-
+        <!-- MAVROS -->
+        <include file="$(find mavros)/launch/px4.launch">
             <arg name="fcu_url" value="$(arg fcu_url)" />
-            <arg name="gcs_url" value="$(arg gcs_url)" />
-            <arg name="tgt_system" value="$(arg tgt_system)" />
-            <arg name="tgt_component" value="$(arg tgt_component)" />
+            <arg name="gcs_url" value="" />
+            <arg name="tgt_system" value="$(eval 1 + arg('ID'))"/>
+            <arg name="tgt_component" value="1" />
         </include>
     </group>
 """
@@ -177,7 +171,7 @@ def main():
   num_drones = int(sys.argv[1])
   
   #set firmware dir
-  firmware_dir = os.path.expanduser("~") + "/src/Firmware"
+  firmware_dir = os.path.expanduser("~") + "/projects/Firmware" #TODO fix hardcode
   if len(sys.argv) > 2:
     firmware_dir = sys.argv[2]
 
@@ -186,30 +180,6 @@ def main():
   if len(sys.argv) > 3:
     starting_port = int(sys.argv[3])
   
-  #write model files in Firmawre/posix-configs/SITL/init
-  port = starting_port
-  for i in range(1, num_drones + 1):
-    with open(firmware_dir + "/posix-configs/SITL/init/ekf2/" + MODEL_FILE_PREFIX + str(i), 'w+') as f:
-      i_params = IRIS_PARAMS_STR % (
-          i + 1, 
-          port, 
-          port+1, 
-          port+2, 
-          port+3, 
-          port+1, 
-          port+1, 
-          port+1, 
-          port+1, 
-          port+1, 
-          port+1, 
-          port+1, 
-          port+1, 
-          port+1, 
-          port+1)
-      f.write(i_params + "\n")
-
-    port += 10
-  
   #write launch file
   with open(firmware_dir + "/launch/multi_uav_mavros_sitl.launch", "w+") as f:
     f.write(LAUNCH_BASE_STR + "\n")
@@ -217,14 +187,14 @@ def main():
     port = starting_port
     for i in range(1, num_drones + 1):
       group_str = LAUNCH_GROUP_STR % (
-          i, 
-          port+3, 
-          port+2, 
-          i + 1, 
-          i, 
-          (i-1)/4, 
-          (i-1)%4, 
-          port)
+          i, #UAV namespace ID
+          i, #UAV ID arg
+          port, #fcu_url udp src?
+          port+1, #fcu_url udp target?
+          (i-1)/4, #x starting pos
+          (i-1)%4, #y starting pos
+          port+2, #mavlink_udp_port
+          port+3) #mavlink_tcp_port
       f.write(group_str + "\n")
 
       port += 10

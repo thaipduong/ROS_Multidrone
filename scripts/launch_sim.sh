@@ -2,7 +2,7 @@
 
 export NUM_DRONES=$1
 export ROS_SIM_DIR=~/projects/ROS_Multidrone
-export FIRMWARE_DIR=~/src/Firmware
+export FIRMWARE_DIR=~/projects/Firmware
 
 #tests for input
 if [ -z "$NUM_DRONES" ];
@@ -28,7 +28,7 @@ then
 fi
 
 echo "[launch] Building project"
-source /opt/ros/kinetic/setup.bash
+source /opt/ros/melodic/setup.bash
 source ~/catkin_ws/devel/setup.bash
 cd $ROS_SIM_DIR
 catkin_make
@@ -48,7 +48,7 @@ echo "[launch] ROS_Multi: ${ROS_SIM_DIR}"
 python3 ${ROS_SIM_DIR}/scripts/gen_models.py ${NUM_DRONES} ${FIRMWARE_DIR}
 
 #start simulation components
-gnome-terminal -e 'bash -c "${ROS_SIM_DIR}/scripts/start_gazebo.sh ${ROS_SIM_DIR} ${FIRMWARE_DIR}; exec bash"' --geometry 80x24+800+0
-gnome-terminal -e 'bash -c "${ROS_SIM_DIR}/scripts/start_drones_cpp.sh ${ROS_SIM_DIR} sim ${NUM_DRONES}; exec bash"' --geometry 80x24+0+470
-gnome-terminal -e 'bash -c "${ROS_SIM_DIR}/scripts/start_drones_py.sh ${ROS_SIM_DIR} ${NUM_DRONES}; exec bash"' --geometry 80x24+800+470
+gnome-terminal --geometry 80x24+800+0 -- bash -c "${ROS_SIM_DIR}/scripts/start_gazebo.sh ${ROS_SIM_DIR} ${FIRMWARE_DIR}; exec bash"
+gnome-terminal --geometry 80x24+0+470 -- bash -c "${ROS_SIM_DIR}/scripts/start_drones_cpp.sh ${ROS_SIM_DIR} sim ${NUM_DRONES}; exec bash"
+#gnome-terminal --geometry 80x24+800+470 -- bash -c "${ROS_SIM_DIR}/scripts/start_drones_py.sh ${ROS_SIM_DIR} ${NUM_DRONES}; exec bash"
 

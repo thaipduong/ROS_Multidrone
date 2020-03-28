@@ -22,7 +22,7 @@ then
 	exit 1
 fi
 
-source /opt/ros/kinetic/setup.bash
+source /opt/ros/melodic/setup.bash
 source ~/catkin_ws/devel/setup.bash
 
 source ${ROS_SIM_DIR}/devel/setup.bash

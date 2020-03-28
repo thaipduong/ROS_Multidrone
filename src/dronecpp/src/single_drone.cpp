@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
 
   // Subscriber topic names
   std::string sub_state_str  = group_ns + "/mavros/state";
-  std::string sub_obj_str    = group_ns + "/Obj";
+  //std::string sub_obj_str    = group_ns + "/Obj";
   std::string sub_gps_str    = group_ns + "/mavros/global_position/global";
 
   // Publisher topic names
@@ -214,12 +214,12 @@ int main(int argc, char **argv) {
 
   // Subscribers
   sub_state = nh.subscribe<mavros_msgs::State>(sub_state_str, 10, state_callback);
-  sub_obj = nh.subscribe<sensor_msgs::NavSatFix>(sub_obj_str, 10, target_callback); //geo msg
+  //sub_obj = nh.subscribe<sensor_msgs::NavSatFix>(sub_obj_str, 10, target_callback); //geo msg
   sub_gps = nh.subscribe<sensor_msgs::NavSatFix>(sub_gps_str, 10, gps_callback); //geo msg
   //sub_signal = nh.subscribe<std_msgs::Bool>("land_sig", 10, land_signal_callback);
 
   // Publishers
-  pub_pos = nh.advertise<mavros_msgs::GlobalPositionTarget>(pub_pos_str, 10);
+  //pub_pos = nh.advertise<geometry_msgs::PoseStamped>(pub_pos_str, 10);
   pub_vel = nh.advertise<geometry_msgs::TwistStamped>(pub_vel_str, 10);
   //pub_vel_ang = nh.advertise<geometry_msgs::Twist>(pub_vel_ang_str, 10);
 
