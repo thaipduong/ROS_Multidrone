@@ -163,7 +163,7 @@ void print_state(bool alt_reached) {
 -----------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
   
-  std::cout << "[ctrl] Starting" << std::endl;
+  std::cerr << "[ctrl] Starting" << std::endl;
   
   int id;
 
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
     int num_drones = std::stoi(argv[2]);
     //Spawn processes for each drone
     int pid = -1;
-    for(id = 1; id < num_drones; id++){
+    for(id = 0; id < num_drones - 1; id++){
       pid = fork();
       if(pid == -1) {
         std::cerr << "Process spawning failed" << std::endl;
@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
   /*TODO check battery status NOT IMPLEMENTED*/
   //battery state msg in mavros
   
-  std::cout << "[ctrl] Waiting for ROS node to start" << std::endl;
+  std::cerr << "[ctrl] Waiting for ROS node to start" << std::endl;
 
   // Wait until ROS node spins up
   while(ros::ok() && !current_state.connected){
@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
     rate.sleep();
   }
 
-  std::cout << "[ctrl] ROS node running" << std::endl;
+  std::cerr << "[ctrl] ROS node running" << std::endl;
  
   double alt_home = pos_gps.altitude;
   
@@ -270,6 +270,8 @@ int main(int argc, char **argv) {
   int debugger = 0;
   ros::Time last_request = ros::Time::now();
   ros::Time last_print = ros::Time::now();
+
+  std::cerr << "[ctrl] ready to attempt flight" << std::endl;
 
   // Loop while ROS is online
   while(ros::ok()){

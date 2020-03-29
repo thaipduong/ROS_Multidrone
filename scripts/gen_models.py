@@ -11,7 +11,7 @@ import sys
 import os
 
 '''[Global vars]------------------------------------------------------------'''
-START_PORT_DEFAULT = 9000
+START_PORT_DEFAULT = 9010
 
 MODEL_FILE_PREFIX = "iris_"
 
@@ -150,10 +150,10 @@ LAUNCH_GROUP_STR = """    <group ns="uav%d">
 
         <!-- MAVROS -->
         <include file="$(find mavros)/launch/px4.launch">
-            <arg name="fcu_url" value="$(arg fcu_url)" />
-            <arg name="gcs_url" value="" />
+            <arg name="fcu_url" value="$(arg fcu_url)"/>
+            <arg name="gcs_url" value=""/>
             <arg name="tgt_system" value="$(eval 1 + arg('ID'))"/>
-            <arg name="tgt_component" value="1" />
+            <arg name="tgt_component" value="1"/>
         </include>
     </group>
 """
@@ -185,16 +185,16 @@ def main():
     f.write(LAUNCH_BASE_STR + "\n")
 
     port = starting_port
-    for i in range(1, num_drones + 1):
+    for i in range(num_drones):
       group_str = LAUNCH_GROUP_STR % (
           i, #UAV namespace ID
           i, #UAV ID arg
-          port, #fcu_url udp src?
-          port+1, #fcu_url udp target?
-          (i-1)/4, #x starting pos
-          (i-1)%4, #y starting pos
-          port+2, #mavlink_udp_port
-          port+3) #mavlink_tcp_port
+          14540 + i, #port, #fcu_url udp remote
+          14580 + i, #port+1, #fcu_url udp local
+          (i)/4, #x starting pos
+          (i)%4, #y starting pos
+          14560 + i, #port+2, #mavlink_udp_port
+          4560 + i) #port+3) #mavlink_tcp_port
       f.write(group_str + "\n")
 
       port += 10
