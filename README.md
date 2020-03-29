@@ -1,5 +1,11 @@
-# ROS_Multidrone Controller - Ubuntu 18.04
-This is a ROS package for use in developing multi-quadcopter applications. It is capable of generating multiple flight controller instances, which can be simulated using SITL in Gazebo (master or michael-vel branches) or run on hardware (hardware branch). Below are instructions for setting this up as well as running the modules.
+# ROS_Multidrone Controller
+This is a ROS package for use in developing multi-quadcopter applications. It is capable of generating multiple PX4 flight controller instances, which can be simulated using SITL in Gazebo (master or michael-vel branches) or run on hardware (hardware branch). Below are instructions for setting this up as well as running the modules.
+
+Tested for:
+- Ubuntu 18.04
+- ROS Melodic
+- Gazebo 9
+- PX4 1.10
 _________________________________________________________________
 
 ## First time setup:
@@ -13,14 +19,14 @@ _________________________________________________________________
      ```
      (Last updated 03-28-20)
 2. Install PX4 firmware
-    - Check that under ~/src/Firmware, the PX4 firmware repository exists, which can be found here: https://github.com/PX4/Firmware
-    - This is referenced in gen_models.py (can change location here if PX4 is installed somewhere else) which is used later to generate launch file with n number of drones.
+    - Clone the PX4 firmware repository: https://github.com/PX4/Firmware
+    - Path to this repo is referenced in gen_models.py and launch_sim.sh, and should be changed as appropriate.
     ```
     git clone https://github.com/PX4/Firmware.git --recursive
     cd Firmware
+    git submodule update --init --recursive
     bash ./Tools/setup/ubuntu.sh
-    Restart machine here
-    make px4_sitl gazebo
+    make px4_sitl_default gazebo
     ```
 3. Clone this repo to your machine
      ```
@@ -31,7 +37,12 @@ _________________________________________________________________
   - ROS_SIM_DIR should point to where ROS_Multidrone was cloned: ie. ~/ROS_Multidrone
   - FIRMWARE_DIR should point to where PX4's firmware was cloned: ie. ~/Firmware
 
-2. Run launch_sim to build project, generate models, and start ROS/Gazebo/PX4. 
+2. Change osrf server under ~/.ignition/fuel/config.yaml
+```
+url: https://fuel.ignitionrobotics.org
+```
+
+3. Run launch_sim with num_drones as param to build project, generate models, and start ROS/Gazebo/PX4. 
 ```
 cd ROS_Multidrone/scripts
 chmod +x launch_sim.sh
