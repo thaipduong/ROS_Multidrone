@@ -330,10 +330,11 @@ int main(int argc, char **argv) {
     }
 
     if(alt_reached) {
-      pub_lin_vel(0, 0, -2.5);
+      //pub_lin_vel(0, 0, -2.5);
+        pub_lin_vel(0, -0.5, -2.5);
     }
     else {
-      pub_lin_vel(0, 0, 5);
+      pub_lin_vel(0, 1, 5);
       //pub_pos.publish(pos_target);
     }
     //ang_vel_pub.publish(target_vel);

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 export NUM_DRONES=$1
-export ROS_SIM_DIR=~/projects/ROS_Multidrone
-export FIRMWARE_DIR=~/projects/Firmware
+export ROS_SIM_DIR=~/catkin_ws/src/ROS_Multidrone
+export FIRMWARE_DIR=~/PX4/Firmware
 
 #tests for input
 if [ -z "$NUM_DRONES" ];

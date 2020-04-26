@@ -171,7 +171,7 @@ def main():
   num_drones = int(sys.argv[1])
   
   #set firmware dir
-  firmware_dir = os.path.expanduser("~") + "/projects/Firmware" #TODO fix hardcode
+  firmware_dir = os.path.expanduser("~") + "/PX4/Firmware" #TODO fix hardcode
   if len(sys.argv) > 2:
     firmware_dir = sys.argv[2]
 
